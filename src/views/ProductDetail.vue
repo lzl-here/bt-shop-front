@@ -1,124 +1,109 @@
 <template>
   <div class="product-detail">
     <div class="product-container">
-      <!-- 商品图片和基本信息 -->
-      <div class="product-main">
-        <div class="product-gallery">
-          <el-carousel trigger="click" height="400px" :autoplay="false">
-            <el-carousel-item v-for="image in product.images" :key="image">
-              <el-image :src="image" fit="contain"></el-image>
-            </el-carousel-item>
-          </el-carousel>
+      <!-- 左侧商品图片 -->
+      <div class="product-gallery">
+        <el-image
+          :src="product.image"
+          fit="contain"
+          class="main-image"
+        />
+        <div class="image-list">
+          <el-image
+            v-for="(img, index) in product.images"
+            :key="index"
+            :src="img"
+            fit="cover"
+            class="thumb-image"
+            @click="selectImage(img)"
+          />
         </div>
+      </div>
 
-        <div class="product-info">
-          <h1>{{ product.name }}</h1>
+      <!-- 右侧商品信息 -->
+      <div class="product-info">
+        <h1 class="product-name">{{ product.name }}</h1>
+        <div class="product-desc">{{ product.description }}</div>
+        
+        <div class="product-meta">
           <div class="price-section">
+            <span class="label">价格</span>
             <span class="price">¥{{ product.price }}</span>
-            <span class="original-price">¥{{ product.originalPrice }}</span>
           </div>
-          
-          <div class="sales-info">
-            <span>月销 {{ product.sales }}+</span>
-            <span>累计评价 {{ product.reviews }}+</span>
-          </div>
-
-          <!-- 规格选择 -->
-          <div class="specs-section">
-            <div v-for="spec in product.specs" 
-                 :key="spec.name" 
-                 class="spec-group">
-              <div class="spec-title">{{ spec.name }}</div>
-              <div class="spec-options">
-                <el-radio-group v-model="selectedSpecs[spec.name]">
-                  <el-radio-button 
-                    v-for="option in spec.options" 
-                    :key="option.value"
-                    :label="option.value"
-                  >
-                    {{ option.label }}
-                  </el-radio-button>
-                </el-radio-group>
-              </div>
-            </div>
-          </div>
-
-          <!-- 数量选择 -->
-          <div class="quantity-section">
-            <span class="label">数量</span>
-            <el-input-number 
-              v-model="quantity" 
-              :min="1" 
-              :max="product.stock"
-              size="large"
-            ></el-input-number>
-            <span class="stock">库存 {{ product.stock }} 件</span>
-          </div>
-
-          <!-- 按钮组 -->
-          <div class="action-buttons">
-            <el-button 
-              type="primary" 
-              size="large" 
-              @click="addToCart"
-              :loading="loading"
-            >
-              加入购物车
-            </el-button>
-            <el-button 
-              type="danger" 
-              size="large" 
-              @click="buyNow"
-              :loading="loading"
-            >
-              立即购买
-            </el-button>
+          <div class="sales-section">
+            <span class="label">月销量</span>
+            <span class="sales">{{ product.sales }}件</span>
           </div>
         </div>
-      </div>
 
-      <!-- 商品详情和评价 -->
-      <div class="product-tabs">
-        <el-tabs v-model="activeTab">
-          <el-tab-pane label="商品详情" name="detail">
-            <div class="detail-content" v-html="product.detail"></div>
-          </el-tab-pane>
-          
-          <el-tab-pane label="商品评价" name="reviews">
-            <div class="reviews-section">
-              <div v-for="review in reviews" 
-                   :key="review.id" 
-                   class="review-item">
-                <div class="review-header">
-                  <el-avatar :src="review.userAvatar" size="small"></el-avatar>
-                  <span class="username">{{ review.username }}</span>
-                  <el-rate 
-                    v-model="review.rating" 
-                    disabled 
-                    show-score
-                  ></el-rate>
-                </div>
-                <div class="review-content">{{ review.content }}</div>
-                <div class="review-images" v-if="review.images?.length">
-                  <el-image 
-                    v-for="image in review.images"
-                    :key="image"
-                    :src="image"
-                    :preview-src-list="review.images"
-                  ></el-image>
-                </div>
-                <div class="review-time">{{ review.createTime }}</div>
-              </div>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
+        <div class="product-attrs">
+          <div class="attr-item">
+            <span class="label">品牌</span>
+            <el-tag size="small">{{ product.brandName }}</el-tag>
+          </div>
+          <div class="attr-item">
+            <span class="label">店铺</span>
+            <el-tag size="small" type="success">{{ product.storeName }}</el-tag>
+          </div>
+        </div>
+
+        <div class="quantity-section">
+          <span class="label">数量</span>
+          <el-input-number
+            v-model="quantity"
+            :min="1"
+            :max="99"
+            size="large"
+          />
+        </div>
+
+        <div class="action-buttons">
+          <el-button 
+            type="primary" 
+            size="large"
+            @click="addToCart"
+          >
+            加入购物车
+          </el-button>
+          <el-button 
+            type="danger" 
+            size="large"
+            @click="buyNow"
+          >
+            立即购买
+          </el-button>
+        </div>
       </div>
+    </div>
+
+    <!-- 商品详情 -->
+    <div class="detail-section">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="商品详情" name="detail">
+          <div class="detail-content">
+            <div v-for="(img, index) in product.detailImages" :key="index">
+              <el-image :src="img" fit="contain" />
+            </div>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="规格参数" name="specs">
+          <el-descriptions :column="1" border>
+            <el-descriptions-item 
+              v-for="(spec, key) in product.specs" 
+              :key="key" 
+              :label="key"
+            >
+              {{ spec }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-tab-pane>
+      </el-tabs>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 import { ElMessage } from 'element-plus'
@@ -127,182 +112,167 @@ const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 
-const loading = ref(false)
-const activeTab = ref('detail')
 const quantity = ref(1)
-const selectedSpecs = reactive({})
+const activeTab = ref('detail')
 
 // 模拟商品数据
 const product = ref({
   id: 1,
-  name: '示例商品',
-  price: 1999,
-  originalPrice: 2999,
-  sales: 1000,
-  reviews: 500,
-  stock: 999,
+  name: 'HUAWEI Mate 60 Pro',
+  price: 6999,
+  description: '华为年度旗舰手机，搭载麒麟芯片，超长续航',
+  image: 'https://via.placeholder.com/500x500',
   images: [
-    '/images/product1.jpg',
-    '/images/product2.jpg'
+    'https://via.placeholder.com/100x100',
+    'https://via.placeholder.com/100x100',
+    'https://via.placeholder.com/100x100'
   ],
-  specs: [
-    {
-      name: '颜色',
-      options: [
-        { label: '黑色', value: 'black' },
-        { label: '白色', value: 'white' }
-      ]
-    },
-    {
-      name: '容量',
-      options: [
-        { label: '128GB', value: '128' },
-        { label: '256GB', value: '256' }
-      ]
-    }
+  detailImages: [
+    'https://via.placeholder.com/800x600',
+    'https://via.placeholder.com/800x600'
   ],
-  detail: '<div>商品详细介绍...</div>'
+  sales: 1000,
+  brandName: 'HUAWEI',
+  storeName: '华为官方旗舰店',
+  specs: {
+    '屏幕尺寸': '6.76英寸',
+    '分辨率': 'FHD+ 2772',
+    '刷新率': '90Hz',
+    '处理器': '麒麟芯片',
+    '电池容量': '5000mAh'
+  }
 })
 
-// 模拟评价数据
-const reviews = ref([
-  {
-    id: 1,
-    username: '用户1',
-    userAvatar: '/images/avatar1.jpg',
-    rating: 5,
-    content: '商品很好，很满意',
-    images: ['/images/review1.jpg'],
-    createTime: '2024-01-20 14:30:00'
-  }
-])
-
-onMounted(async () => {
-  const productId = route.params.id
-  // 这里应该调用API获取商品详情
-})
-
-const addToCart = () => {
-  if (!validateSpecs()) return
-  
-  loading.value = true
-  try {
-    const productToAdd = {
-      ...product.value,
-      quantity: quantity.value,
-      selectedSpecs: { ...selectedSpecs }
-    }
-    cartStore.addItem(productToAdd)
-    ElMessage.success('已添加到购物车')
-  } catch (error) {
-    ElMessage.error('添加失败')
-  } finally {
-    loading.value = false
-  }
+// 选择图片
+const selectImage = (img) => {
+  product.value.image = img
 }
 
+// 加入购物车
+const addToCart = () => {
+  cartStore.addItem({
+    ...product.value,
+    quantity: quantity.value
+  })
+  ElMessage.success('已添加到购物车')
+}
+
+// 立即购买
 const buyNow = () => {
-  if (!validateSpecs()) return
-  
-  addToCart()
+  cartStore.addItem({
+    ...product.value,
+    quantity: quantity.value
+  })
   router.push('/cart')
 }
 
-const validateSpecs = () => {
-  const unselectedSpec = product.value.specs.find(
-    spec => !selectedSpecs[spec.name]
-  )
-  
-  if (unselectedSpec) {
-    ElMessage.warning(`请选择${unselectedSpec.name}`)
-    return false
-  }
-  return true
-}
+onMounted(() => {
+  // TODO: 根据路由参数获取商品详情
+  const productId = route.params.id
+  console.log('获取商品详情:', productId)
+})
 </script>
 
 <style scoped>
 .product-detail {
-  padding: 20px;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
 }
 
 .product-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.product-main {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 40px;
   margin-bottom: 40px;
 }
 
 .product-gallery {
+  width: 500px;
+  flex-shrink: 0;
+}
+
+.main-image {
+  width: 100%;
+  height: 500px;
   border: 1px solid #eee;
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.image-list {
+  display: flex;
+  gap: 10px;
+}
+
+.thumb-image {
+  width: 80px;
+  height: 80px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.thumb-image:hover {
+  border-color: var(--el-color-primary);
 }
 
 .product-info {
-  padding: 20px;
+  flex: 1;
 }
 
-.product-info h1 {
-  margin-bottom: 20px;
+.product-name {
   font-size: 24px;
-}
-
-.price-section {
-  margin-bottom: 20px;
-}
-
-.price {
-  font-size: 28px;
-  color: var(--el-color-danger);
-  margin-right: 10px;
-}
-
-.original-price {
-  color: #999;
-  text-decoration: line-through;
-}
-
-.sales-info {
-  color: #666;
-  margin-bottom: 20px;
-}
-
-.sales-info span {
-  margin-right: 20px;
-}
-
-.specs-section {
-  margin-bottom: 20px;
-}
-
-.spec-group {
   margin-bottom: 15px;
 }
 
-.spec-title {
+.product-desc {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.product-meta {
+  background: #f8f8f8;
+  padding: 20px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.price-section,
+.sales-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
-  color: #666;
 }
 
-.spec-options {
-  margin-bottom: 15px;
+.price-section .price {
+  color: #f56c6c;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.label {
+  color: #666;
+  width: 60px;
+}
+
+.product-attrs {
+  margin-bottom: 20px;
+}
+
+.attr-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .quantity-section {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
   margin-bottom: 30px;
-}
-
-.stock {
-  color: #666;
 }
 
 .action-buttons {
@@ -310,50 +280,34 @@ const validateSpecs = () => {
   gap: 20px;
 }
 
-.product-tabs {
+.detail-section {
   background: #fff;
   padding: 20px;
-  border-radius: 8px;
-}
-
-.detail-content {
-  padding: 20px 0;
-}
-
-.review-item {
-  padding: 20px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.review-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.username {
-  color: #666;
-}
-
-.review-content {
-  margin: 10px 0;
-}
-
-.review-images {
-  display: flex;
-  gap: 10px;
-  margin: 10px 0;
-}
-
-.review-images .el-image {
-  width: 100px;
-  height: 100px;
   border-radius: 4px;
 }
 
-.review-time {
-  color: #999;
-  font-size: 0.9rem;
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 0;
+}
+
+@media screen and (max-width: 992px) {
+  .product-container {
+    flex-direction: column;
+  }
+
+  .product-gallery {
+    width: 100%;
+  }
+
+  .main-image {
+    height: auto;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
 }
 </style> 

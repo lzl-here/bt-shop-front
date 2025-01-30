@@ -1,5 +1,19 @@
 <template>
   <div class="home">
+    <!-- 添加搜索框 -->
+    <div class="search-container">
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索商品"
+        class="search-input"
+        clearable
+      >
+        <template #append>
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
+        </template>
+      </el-input>
+    </div>
+
     <!-- 轮播图 -->
     <div class="banner">
       <el-carousel height="500px">
@@ -50,8 +64,11 @@
 import { ref } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 const cartStore = useCartStore()
+const router = useRouter()
+const searchKeyword = ref('')
 
 const banners = ref([
   {
@@ -99,6 +116,16 @@ const hotProducts = ref([
 const addToCart = (product) => {
   cartStore.addItem(product)
   ElMessage.success('已添加到购物车')
+}
+
+// 处理搜索
+const handleSearch = () => {
+  if (searchKeyword.value.trim()) {
+    router.push({
+      name: 'products',
+      query: { keyword: searchKeyword.value }
+    })
+  }
 }
 </script>
 
@@ -193,5 +220,22 @@ const addToCart = (product) => {
   font-size: 1.2rem;
   font-weight: bold;
   margin: 0.5rem 0;
+}
+
+/* 添加搜索框样式 */
+.search-container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.search-input :deep(.el-input-group__append) {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: white;
 }
 </style> 

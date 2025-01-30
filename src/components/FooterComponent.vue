@@ -33,7 +33,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2024 商城名称 All Rights Reserved.</p>
+      <p>© 2024 BT-Shop All Rights Reserved.</p>
     </div>
   </footer>
 </template>
