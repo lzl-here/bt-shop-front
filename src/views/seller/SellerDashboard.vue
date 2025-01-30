@@ -248,7 +248,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-              <el-dropdown-item command="orders">我的订单</el-dropdown-item>
+              <el-dropdown-item command="orders">我的交易</el-dropdown-item>
               <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -486,7 +486,7 @@ const handleCommand = (command) => {
       router.push('/user/profile')
       break
     case 'orders':
-      router.push('/user/orders')
+      router.push('/user/trades')
       break
     case 'logout':
       ElMessageBox.confirm(

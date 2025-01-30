@@ -2,6 +2,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import { useUserStore } from '../stores/user'
 
+// 预导入关键组件
+import User from '../views/User.vue'
+import UserProfile from '../views/user/Profile.vue'
+import UserTrade from '../views/user/Trade.vue'
+import UserAddress from '../views/user/Address.vue'
+import UserSecurity from '../views/user/Security.vue'
+
 const routes = [
   {
     path: '/',
@@ -40,39 +47,45 @@ const routes = [
   },
   {
     path: '/user',
-    component: () => import('../views/User.vue'),
+    component: User,
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
-        redirect: '/user/profile'
+        name: 'UserHome',
+        component: () => import('../views/user/UserHome.vue')
       },
       {
         path: 'profile',
         name: 'UserProfile',
-        component: () => import('../views/user/Profile.vue')
+        component: UserProfile
       },
       {
-        path: 'orders',
-        name: 'UserOrders',
-        component: () => import('../views/user/Orders.vue')
+        path: 'trades',
+        name: 'UserTrades',
+        component: UserTrade
+      },
+      {
+        path: 'trades/:tradeId',
+        name: 'TradeDetail',
+        component: () => import('../views/user/TradeDetail.vue')
       },
       {
         path: 'address',
         name: 'UserAddress',
-        component: () => import('../views/user/Address.vue')
+        component: UserAddress
       },
       {
         path: 'security',
         name: 'UserSecurity',
-        component: () => import('../views/user/Security.vue')
+        component: UserSecurity
       }
     ]
   },
   {
     path: '/checkout',
     name: 'Checkout',
-    component: () => import('../views/order/Checkout.vue'),
+    component: () => import('../views/trades/Checkout.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -84,7 +97,7 @@ const routes = [
   {
     path: '/payment',
     name: 'Payment',
-    component: () => import('../views/order/Payment.vue'),
+    component: () => import('../views/trades/Payment.vue'),
     meta: { requiresAuth: true }
   }
 ]

@@ -1,6 +1,6 @@
 <template>
   <div class="user-container">
-    <!-- 侧边栏导航 -->
+    <!-- 左侧导航 -->
     <div class="sidebar">
       <div class="menu-group">
         <div class="menu-title">个人中心</div>
@@ -13,12 +13,12 @@
           个人资料
         </router-link>
         <router-link 
-          to="/user/orders" 
+          to="/user/trades" 
           class="menu-item"
           active-class="active"
         >
           <el-icon><Document /></el-icon>
-          我的订单
+          我的交易
         </router-link>
         <router-link 
           to="/user/address" 
@@ -43,13 +43,13 @@
       </div>
     </div>
 
-    <!-- 主内容区域 -->
+    <!-- 右侧内容区域 -->
     <div class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
+      <router-view v-if="$route.matched.length > 1"></router-view>
+      <div v-else class="welcome-page">
+        <h2>欢迎来到个人中心</h2>
+        <p>请从左侧菜单选择要查看的内容</p>
+      </div>
     </div>
   </div>
 </template>
@@ -65,6 +65,7 @@ import { UserFilled, Document, Location, Lock } from '@element-plus/icons-vue'
   padding: 0 20px;
   display: flex;
   gap: 20px;
+  min-height: calc(100vh - 140px);
 }
 
 .sidebar {
@@ -128,7 +129,17 @@ import { UserFilled, Document, Location, Lock } from '@element-plus/icons-vue'
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
-  min-height: calc(100vh - 140px);
+}
+
+.welcome-page {
+  text-align: center;
+  padding: 40px;
+  color: #909399;
+}
+
+.welcome-page h2 {
+  margin-bottom: 16px;
+  color: #606266;
 }
 
 @media screen and (max-width: 768px) {
@@ -139,10 +150,6 @@ import { UserFilled, Document, Location, Lock } from '@element-plus/icons-vue'
   .sidebar {
     width: 100%;
     position: static;
-  }
-
-  .main-content {
-    min-height: auto;
   }
 }
 </style> 

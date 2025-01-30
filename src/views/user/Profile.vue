@@ -1,298 +1,219 @@
 <template>
-  <div class="profile-container">
-    <el-card class="profile-card">
-      <template #header>
-        <div class="card-header">
-          <span>个人资料</span>
-          <el-button 
-            type="primary" 
-            @click="handleEdit" 
-            v-if="!isEditing"
-          >
-            编辑资料
-          </el-button>
-          <div v-else>
-            <el-button @click="cancelEdit">取消</el-button>
-            <el-button type="primary" @click="saveProfile">保存</el-button>
-          </div>
-        </div>
-      </template>
+  <div class="profile-page">
+    <h2>个人资料</h2>
 
-      <div class="profile-content">
-        <!-- 头像部分 -->
-        <div class="avatar-section">
-          <el-avatar 
-            :size="100" 
-            :src="userInfo.avatar || '/default-avatar.png'"
-          />
-          <el-upload
-            v-if="isEditing"
-            class="avatar-uploader"
-            action="/api/upload"
-            :show-file-list="false"
-            :on-success="handleAvatarSuccess"
-          >
-            <el-button size="small" type="primary">更换头像</el-button>
-          </el-upload>
-        </div>
+    <el-form
+      ref="formRef"
+      :model="userForm"
+      :rules="rules"
+      label-width="100px"
+      class="profile-form"
+    >
+      <el-form-item label="头像" prop="avatar">
+        <el-upload
+          class="avatar-uploader"
+          action="/api/upload"
+          :show-file-list="false"
+          :on-success="handleAvatarSuccess"
+          :before-upload="beforeAvatarUpload"
+        >
+          <img v-if="userForm.avatar" :src="userForm.avatar" class="avatar" />
+          <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+        </el-upload>
+      </el-form-item>
 
-        <!-- 个人信息表单 -->
-        <div class="info-section">
-          <el-form 
-            :model="userInfo"
-            label-width="100px"
-            :disabled="!isEditing"
-          >
-            <el-form-item label="用户名">
-              <el-input v-model="userInfo.username" disabled />
-            </el-form-item>
+      <el-form-item label="用户名" prop="username">
+        <el-input v-model="userForm.username" disabled />
+      </el-form-item>
 
-            <el-form-item label="昵称">
-              <el-input v-model="userInfo.nickname" />
-            </el-form-item>
+      <el-form-item label="昵称" prop="nickname">
+        <el-input v-model="userForm.nickname" />
+      </el-form-item>
 
-            <el-form-item label="性别">
-              <el-radio-group v-model="userInfo.gender">
-                <el-radio :label="1">男</el-radio>
-                <el-radio :label="2">女</el-radio>
-                <el-radio :label="0">保密</el-radio>
-              </el-radio-group>
-            </el-form-item>
+      <el-form-item label="手机号码" prop="phone">
+        <el-input v-model="userForm.phone">
+          <template #append>
+            <el-button type="primary" link @click="verifyPhone">
+              {{ userForm.phone ? '更换' : '绑定' }}
+            </el-button>
+          </template>
+        </el-input>
+      </el-form-item>
 
-            <el-form-item label="手机号码">
-              <el-input v-model="userInfo.phone" />
-            </el-form-item>
+      <el-form-item label="邮箱" prop="email">
+        <el-input v-model="userForm.email">
+          <template #append>
+            <el-button type="primary" link @click="verifyEmail">
+              {{ userForm.email ? '更换' : '绑定' }}
+            </el-button>
+          </template>
+        </el-input>
+      </el-form-item>
 
-            <el-form-item label="电子邮箱">
-              <el-input v-model="userInfo.email" />
-            </el-form-item>
+      <el-form-item label="性别" prop="gender">
+        <el-radio-group v-model="userForm.gender">
+          <el-radio label="male">男</el-radio>
+          <el-radio label="female">女</el-radio>
+          <el-radio label="other">保密</el-radio>
+        </el-radio-group>
+      </el-form-item>
 
-            <el-form-item label="生日">
-              <el-date-picker
-                v-model="userInfo.birthday"
-                type="date"
-                placeholder="选择日期"
-                format="YYYY-MM-DD"
-              />
-            </el-form-item>
+      <el-form-item label="生日" prop="birthday">
+        <el-date-picker
+          v-model="userForm.birthday"
+          type="date"
+          placeholder="选择日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+        />
+      </el-form-item>
 
-            <el-form-item label="个人简介">
-              <el-input
-                v-model="userInfo.bio"
-                type="textarea"
-                :rows="3"
-                placeholder="介绍一下自己吧"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 安全设置卡片 -->
-    <el-card class="security-card">
-      <template #header>
-        <div class="card-header">
-          <span>安全设置</span>
-        </div>
-      </template>
-
-      <div class="security-items">
-        <div class="security-item">
-          <div class="item-info">
-            <div class="item-title">登录密码</div>
-            <div class="item-desc">建议您定期更改密码，设置一个包含字母和数字的密码会更安全</div>
-          </div>
-          <el-button link type="primary" @click="changePassword">修改</el-button>
-        </div>
-
-        <div class="security-item">
-          <div class="item-info">
-            <div class="item-title">手机绑定</div>
-            <div class="item-desc">已绑定手机：{{ maskPhone(userInfo.phone) }}</div>
-          </div>
-          <el-button link type="primary" @click="changePhone">修改</el-button>
-        </div>
-
-        <div class="security-item">
-          <div class="item-info">
-            <div class="item-title">邮箱绑定</div>
-            <div class="item-desc">已绑定邮箱：{{ maskEmail(userInfo.email) }}</div>
-          </div>
-          <el-button link type="primary" @click="changeEmail">修改</el-button>
-        </div>
-      </div>
-    </el-card>
+      <el-form-item>
+        <el-button type="primary" @click="submitForm(formRef)">保存修改</el-button>
+        <el-button @click="resetForm(formRef)">重置</el-button>
+      </el-form-item>
+    </el-form>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive } from 'vue'
+<script setup lang="ts">
+import { ref } from 'vue'
+import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { useUserStore } from '../../stores/user'
+import type { FormInstance } from 'element-plus'
 
-const userStore = useUserStore()
-const isEditing = ref(false)
-
-// 用户信息
-const userInfo = reactive({
-  username: userStore.userInfo?.username || '',
-  nickname: userStore.userInfo?.nickname || '',
-  gender: userStore.userInfo?.gender || 0,
-  phone: userStore.userInfo?.phone || '',
-  email: userStore.userInfo?.email || '',
-  birthday: userStore.userInfo?.birthday || '',
-  bio: userStore.userInfo?.bio || '',
-  avatar: userStore.userInfo?.avatar || ''
+const formRef = ref<FormInstance>()
+const userForm = ref({
+  avatar: 'https://via.placeholder.com/100',
+  username: 'lzl',
+  nickname: '李先生',
+  phone: '138****8888',
+  email: 'ex***@example.com',
+  gender: 'male',
+  birthday: '1990-01-01'
 })
 
-// 开始编辑
-const handleEdit = () => {
-  isEditing.value = true
+interface FormRules {
+  nickname: {
+    required: boolean;
+    message: string;
+    trigger: string;
+  }[];
+  phone: {
+    pattern: RegExp;
+    message: string;
+    trigger: string;
+  }[];
+  email: {
+    type: string;
+    message: string;
+    trigger: string;
+  }[];
 }
 
-// 取消编辑
-const cancelEdit = () => {
-  isEditing.value = false
-  // 重置表单数据到原始状态
-  Object.assign(userInfo, userStore.userInfo)
+const rules: FormRules = {
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' },
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+  ],
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+  ],
+  email: [
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ]
 }
 
-// 保存资料
-const saveProfile = () => {
-  // TODO: 调用API保存用户资料
-  ElMessage.success('保存成功')
-  isEditing.value = false
-}
-
-// 头像上传成功
-const handleAvatarSuccess = (response) => {
-  userInfo.avatar = response.url
+const handleAvatarSuccess = (res) => {
+  userForm.value.avatar = res.url
   ElMessage.success('头像上传成功')
 }
 
-// 修改密码
-const changePassword = () => {
-  // TODO: 实现修改密码逻辑
+const beforeAvatarUpload = (file) => {
+  const isJPG = file.type === 'image/jpeg'
+  const isPNG = file.type === 'image/png'
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isJPG && !isPNG) {
+    ElMessage.error('头像只能是 JPG 或 PNG 格式!')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('头像大小不能超过 2MB!')
+    return false
+  }
+  return true
 }
 
-// 修改手机
-const changePhone = () => {
-  // TODO: 实现修改手机逻辑
+const verifyPhone = () => {
+  // TODO: 实现手机号验证逻辑
+  ElMessage.info('手机号验证功能开发中')
 }
 
-// 修改邮箱
-const changeEmail = () => {
-  // TODO: 实现修改邮箱逻辑
+const verifyEmail = () => {
+  // TODO: 实现邮箱验证逻辑
+  ElMessage.info('邮箱验证功能开发中')
 }
 
-// 手机号码脱敏
-const maskPhone = (phone) => {
-  if (!phone) return ''
-  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+const submitForm = async (formEl) => {
+  if (!formEl) return
+  await formEl.validate((valid) => {
+    if (valid) {
+      // TODO: 实现保存逻辑
+      ElMessage.success('保存成功')
+    }
+  })
 }
 
-// 邮箱脱敏
-const maskEmail = (email) => {
-  if (!email) return ''
-  const [username, domain] = email.split('@')
-  const maskedUsername = username.charAt(0) + '****' + username.charAt(username.length - 1)
-  return `${maskedUsername}@${domain}`
+const resetForm = (formEl) => {
+  if (!formEl) return
+  formEl.resetFields()
 }
 </script>
 
 <style scoped>
-.profile-container {
-  max-width: 1000px;
-  margin: 20px auto;
-  padding: 0 20px;
+.profile-page {
+  padding: 20px;
 }
 
-.profile-card {
-  margin-bottom: 20px;
+.profile-page h2 {
+  margin-bottom: 30px;
 }
 
-.security-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.profile-content {
-  display: flex;
-  gap: 50px;
-  padding: 20px 0;
-}
-
-.avatar-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.info-section {
-  flex: 1;
+.profile-form {
+  max-width: 600px;
 }
 
 .avatar-uploader {
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--el-transition-duration-fast);
+}
+
+.avatar-uploader:hover {
+  border-color: var(--el-color-primary);
+}
+
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 100px;
+  height: 100px;
   text-align: center;
+  line-height: 100px;
 }
 
-.security-items {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.avatar {
+  width: 100px;
+  height: 100px;
+  display: block;
+  object-fit: cover;
 }
 
-.security-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid #eee;
+:deep(.el-input-group__append) {
+  padding: 0 10px;
 }
-
-.security-item:last-child {
-  border-bottom: none;
-}
-
-.item-title {
-  font-size: 16px;
-  color: #333;
-  margin-bottom: 8px;
-}
-
-.item-desc {
-  font-size: 14px;
-  color: #999;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: bold;
-}
-
-:deep(.el-input.is-disabled .el-input__wrapper) {
-  background-color: var(--el-fill-color-light);
-}
-
-:deep(.el-radio-group) {
-  display: flex;
-  gap: 20px;
-}
-
-@media screen and (max-width: 768px) {
-  .profile-content {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .info-section {
-    width: 100%;
-  }
-}
-</style> 
+</style>

@@ -16,8 +16,8 @@ const handleCommand = async (command) => {
     case 'profile':
       await router.push('/user/profile')
       break
-    case 'orders':
-      await router.push('/user/orders')
+    case 'trades':
+      await router.push('/user/trades')
       break
     case 'logout':
       try {
@@ -91,7 +91,7 @@ const handleCommand = async (command) => {
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-                <el-dropdown-item command="orders">我的订单</el-dropdown-item>
+                <el-dropdown-item command="orders">我的交易</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
