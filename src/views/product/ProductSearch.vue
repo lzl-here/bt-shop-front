@@ -1,40 +1,103 @@
 <template>
   <div class="product-search">
-    <!-- 左侧筛选区域 -->
-    <div class="filter-sidebar">
-      <div class="filter-group">
-        <div class="filter-title">品牌：</div>
-        <div class="filter-content">
+    <!-- 左侧分类导航 -->
+    <div class="category-sidebar">
+      <div class="category-title">分类：</div>
+      <div class="category-list">
+        <div 
+          v-for="category in categories" 
+          :key="category.id"
+          class="category-item"
+          @mouseenter="handleCategoryHover(category)"
+          @mouseleave="handleCategoryLeave"
+        >
+          <div class="category-item-content">
+            <el-icon><Folder /></el-icon>
+            {{ category.name }}
+            <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+          </div>
+
+          <!-- 子分类弹出层 -->
+          <div 
+            v-if="hoveredCategory === category.id" 
+            class="subcategory-panel"
+          >
+            <div 
+              v-for="subCategory in category.children" 
+              :key="subCategory.id"
+              class="subcategory-group"
+            >
+              <div class="subcategory-title">{{ subCategory.name }}</div>
+              <div class="subcategory-list">
+                <div 
+                  v-for="item in subCategory.children" 
+                  :key="item.id"
+                  class="subcategory-item"
+                  @click="handleCategoryClick(item.id)"
+                >
+                  {{ item.name }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-section">
+        <div class="brand-title">品牌：</div>
+        <div class="brand-list">
           <div 
             v-for="brand in brands" 
             :key="brand.id"
-            :class="['filter-item', searchForm.brandId === brand.id ? 'active' : '']"
-            @click="searchForm.brandId = brand.id"
+            :class="['brand-item', selectedBrand === brand.id ? 'active' : '']"
+            @click="handleBrandClick(brand.id)"
           >
-            <img v-if="brand.logo" :src="brand.logo" class="brand-logo" />
-            <span>{{ brand.name }}</span>
+            <el-icon><Shop /></el-icon>
+            {{ brand.name }}
           </div>
-          <div class="filter-more">
-            <span>更多</span>
+          <div class="brand-more">
+            更多
             <el-icon><ArrowRight /></el-icon>
           </div>
         </div>
       </div>
 
-      <div class="filter-group">
-        <div class="filter-title">参数：</div>
-        <div class="filter-content">
-          <div class="filter-item">
-            <span>分辨率：</span>
-            <el-tag size="small">FHD+2772</el-tag>
+      <div class="params-section">
+        <div class="params-title">参数：</div>
+        <div class="param-item">
+          <div class="param-label">分辨率：</div>
+          <div class="param-value">
+            <el-tag 
+              size="small"
+              :effect="selectedResolution === 'FHD+2772' ? 'light' : 'plain'"
+              @click="selectResolution('FHD+2772')"
+            >
+              FHD+2772
+            </el-tag>
           </div>
-          <div class="filter-item">
-            <span>刷新率：</span>
-            <el-tag size="small">90HZ</el-tag>
+        </div>
+        <div class="param-item">
+          <div class="param-label">刷新率：</div>
+          <div class="param-value">
+            <el-tag 
+              size="small"
+              :effect="selectedRefreshRate === '90HZ' ? 'light' : 'plain'"
+              @click="selectRefreshRate('90HZ')"
+            >
+              90HZ
+            </el-tag>
           </div>
-          <div class="filter-item">
-            <span>屏幕尺寸：</span>
-            <el-tag size="small">6.76英寸</el-tag>
+        </div>
+        <div class="param-item">
+          <div class="param-label">屏幕尺寸：</div>
+          <div class="param-value">
+            <el-tag 
+              size="small"
+              :effect="selectedScreenSize === '6.76英寸' ? 'light' : 'plain'"
+              @click="selectScreenSize('6.76英寸')"
+            >
+              6.76英寸
+            </el-tag>
           </div>
         </div>
       </div>
@@ -156,7 +219,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Search, ArrowRight } from '@element-plus/icons-vue'
+import { Search, ArrowRight, Folder, Shop } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
 
 const route = useRoute()
@@ -488,6 +551,73 @@ const hideSuggestions = () => {
 const handleFocus = () => {
   showSuggestions.value = true
 }
+
+// 修改分类数据结构
+const categories = ref([
+  {
+    id: 1,
+    name: '数码产品',
+    children: [
+      {
+        id: 101,
+        name: '电脑',
+        children: [
+          { id: 1001, name: '台式' },
+          { id: 1002, name: '笔记本' }
+        ]
+      },
+      {
+        id: 102,
+        name: '手机',
+        children: [
+          { id: 1003, name: '旗舰机' },
+          { id: 1004, name: '性能机' }
+        ]
+      }
+    ]
+  },
+  // 如果还有其他顶级分类，可以继续添加
+])
+
+// 当前悬停的分类ID
+const hoveredCategory = ref(null)
+
+// 处理分类悬停
+const handleCategoryHover = (category) => {
+  hoveredCategory.value = category.id
+}
+
+// 处理分类离开
+const handleCategoryLeave = () => {
+  hoveredCategory.value = null
+}
+
+// 处理分类点击
+const handleCategoryClick = (categoryId) => {
+  // TODO: 处理分类点击逻辑
+  console.log('选中分类:', categoryId)
+}
+
+const selectedBrand = ref(null)
+
+const handleBrandClick = (id) => {
+  selectedBrand.value = id
+}
+
+const selectedResolution = ref('FHD+2772')
+const selectResolution = (resolution) => {
+  selectedResolution.value = resolution
+}
+
+const selectedRefreshRate = ref('90HZ')
+const selectRefreshRate = (rate) => {
+  selectedRefreshRate.value = rate
+}
+
+const selectedScreenSize = ref('6.76英寸')
+const selectScreenSize = (size) => {
+  selectedScreenSize.value = size
+}
 </script>
 
 <style scoped>
@@ -653,26 +783,30 @@ const handleFocus = () => {
   padding: 20px;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 100%;
 }
 
 .search-box {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 800px;
-  position: relative;  /* 添加相对定位 */
+  position: relative;
+  width: 100%;
 }
 
 .search-input {
   flex: 1;
+  width: 100%;
 }
 
 .search-input :deep(.el-input__wrapper) {
   border-radius: 40px;
   padding-left: 20px;
+  padding-right: 20px;
   background-color: #f5f7fa;
   box-shadow: none;
   border: 1px solid #e4e7ed;
+  width: 100%;
 }
 
 .search-input :deep(.el-input__wrapper.is-focus) {
@@ -701,6 +835,7 @@ const handleFocus = () => {
   font-size: 14px;
   background-color: #409EFF;
   border: none;
+  min-width: 100px;
 }
 
 .search-btn:hover {
@@ -776,7 +911,7 @@ const handleFocus = () => {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  right: 108px;
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -784,6 +919,7 @@ const handleFocus = () => {
   z-index: 1000;
   max-height: 400px;
   overflow-y: auto;
+  width: calc(100% - 108px);
 }
 
 .suggestion-item {
@@ -860,5 +996,160 @@ const handleFocus = () => {
   text-align: center;
   color: #909399;
   font-size: 14px;
+}
+
+.search-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.category-sidebar {
+  width: 240px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.category-title,
+.brand-title,
+.params-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.category-list,
+.brand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.category-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.arrow-icon {
+  margin-left: auto;
+  font-size: 12px;
+  color: #909399;
+  transition: transform 0.3s;
+}
+
+.category-item:hover .arrow-icon {
+  transform: translateX(3px);
+  color: var(--el-color-primary);
+}
+
+.subcategory-panel {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 400px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 10;
+}
+
+.subcategory-group {
+  margin-bottom: 20px;
+}
+
+.subcategory-group:last-child {
+  margin-bottom: 0;
+}
+
+.subcategory-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.subcategory-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.subcategory-item {
+  font-size: 13px;
+  color: #606266;
+  padding: 4px 8px;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.subcategory-item:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.brand-section,
+.params-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+}
+
+.brand-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  color: #909399;
+  cursor: pointer;
+}
+
+.brand-more:hover {
+  color: var(--el-color-primary);
+}
+
+.param-item {
+  margin-bottom: 16px;
+}
+
+.param-label {
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.param-value {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+:deep(.el-tag) {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+:deep(.el-tag:hover) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
 }
 </style> 

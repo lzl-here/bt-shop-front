@@ -238,6 +238,21 @@
         <div v-if="activeMenu === 'settings'" class="settings-panel">
           <StoreSettings />
         </div>
+
+        <!-- 用户下拉菜单 -->
+        <el-dropdown @command="handleCommand">
+          <span class="user-info">
+            <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/default-avatar.png'" />
+            <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+              <el-dropdown-item command="orders">我的订单</el-dropdown-item>
+              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </el-main>
     </el-container>
   </div>
@@ -249,6 +264,11 @@ import { DataLine, Goods, List, Setting, Plus, Money } from '@element-plus/icons
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PaymentRecords from './PaymentRecords.vue'
 import StoreSettings from './StoreSettings.vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../../stores/user'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const activeMenu = ref('settings')
 
@@ -458,6 +478,32 @@ const handleOrderAction = (order, action) => {
       break
   }
 }
+
+// 处理下拉菜单命令
+const handleCommand = (command) => {
+  switch (command) {
+    case 'profile':
+      router.push('/user/profile')
+      break
+    case 'orders':
+      router.push('/user/orders')
+      break
+    case 'logout':
+      ElMessageBox.confirm(
+        '确定要退出登录吗？',
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(() => {
+        userStore.logout()
+        router.push('/login')
+      })
+      break
+  }
+}
 </script>
 
 <style scoped>
@@ -617,5 +663,15 @@ const handleOrderAction = (order, action) => {
   background: #fff;
   padding: 20px;
   border-radius: 4px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.username {
+  font-size: 14px;
 }
 </style> 

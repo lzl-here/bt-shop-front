@@ -88,26 +88,62 @@
         </div>
       </div>
     </el-card>
+
+    <!-- 安全设置卡片 -->
+    <el-card class="security-card">
+      <template #header>
+        <div class="card-header">
+          <span>安全设置</span>
+        </div>
+      </template>
+
+      <div class="security-items">
+        <div class="security-item">
+          <div class="item-info">
+            <div class="item-title">登录密码</div>
+            <div class="item-desc">建议您定期更改密码，设置一个包含字母和数字的密码会更安全</div>
+          </div>
+          <el-button link type="primary" @click="changePassword">修改</el-button>
+        </div>
+
+        <div class="security-item">
+          <div class="item-info">
+            <div class="item-title">手机绑定</div>
+            <div class="item-desc">已绑定手机：{{ maskPhone(userInfo.phone) }}</div>
+          </div>
+          <el-button link type="primary" @click="changePhone">修改</el-button>
+        </div>
+
+        <div class="security-item">
+          <div class="item-info">
+            <div class="item-title">邮箱绑定</div>
+            <div class="item-desc">已绑定邮箱：{{ maskEmail(userInfo.email) }}</div>
+          </div>
+          <el-button link type="primary" @click="changeEmail">修改</el-button>
+        </div>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '../../stores/user'
 
-// 编辑状态
+const userStore = useUserStore()
 const isEditing = ref(false)
 
 // 用户信息
 const userInfo = reactive({
-  username: 'user123',
-  nickname: '快乐的小鸟',
-  gender: 1,
-  phone: '13800138000',
-  email: 'example@email.com',
-  birthday: '',
-  bio: '这个人很懒，什么都没有留下...',
-  avatar: ''
+  username: userStore.userInfo?.username || '',
+  nickname: userStore.userInfo?.nickname || '',
+  gender: userStore.userInfo?.gender || 0,
+  phone: userStore.userInfo?.phone || '',
+  email: userStore.userInfo?.email || '',
+  birthday: userStore.userInfo?.birthday || '',
+  bio: userStore.userInfo?.bio || '',
+  avatar: userStore.userInfo?.avatar || ''
 })
 
 // 开始编辑
@@ -118,7 +154,8 @@ const handleEdit = () => {
 // 取消编辑
 const cancelEdit = () => {
   isEditing.value = false
-  // TODO: 重置表单数据到原始状态
+  // 重置表单数据到原始状态
+  Object.assign(userInfo, userStore.userInfo)
 }
 
 // 保存资料
@@ -133,16 +170,49 @@ const handleAvatarSuccess = (response) => {
   userInfo.avatar = response.url
   ElMessage.success('头像上传成功')
 }
+
+// 修改密码
+const changePassword = () => {
+  // TODO: 实现修改密码逻辑
+}
+
+// 修改手机
+const changePhone = () => {
+  // TODO: 实现修改手机逻辑
+}
+
+// 修改邮箱
+const changeEmail = () => {
+  // TODO: 实现修改邮箱逻辑
+}
+
+// 手机号码脱敏
+const maskPhone = (phone) => {
+  if (!phone) return ''
+  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+}
+
+// 邮箱脱敏
+const maskEmail = (email) => {
+  if (!email) return ''
+  const [username, domain] = email.split('@')
+  const maskedUsername = username.charAt(0) + '****' + username.charAt(username.length - 1)
+  return `${maskedUsername}@${domain}`
+}
 </script>
 
 <style scoped>
 .profile-container {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 0 20px;
 }
 
 .profile-card {
+  margin-bottom: 20px;
+}
+
+.security-card {
   margin-bottom: 20px;
 }
 
@@ -154,7 +224,7 @@ const handleAvatarSuccess = (response) => {
 
 .profile-content {
   display: flex;
-  gap: 150px;
+  gap: 50px;
   padding: 20px 0;
 }
 
@@ -171,6 +241,35 @@ const handleAvatarSuccess = (response) => {
 
 .avatar-uploader {
   text-align: center;
+}
+
+.security-items {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.security-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.security-item:last-child {
+  border-bottom: none;
+}
+
+.item-title {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.item-desc {
+  font-size: 14px;
+  color: #999;
 }
 
 :deep(.el-form-item__label) {

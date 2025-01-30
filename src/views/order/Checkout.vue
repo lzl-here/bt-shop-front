@@ -1,92 +1,80 @@
 <template>
   <div class="checkout-container">
-    <el-card class="checkout-card">
-      <!-- 收货地址 -->
-      <div class="section address-section">
-        <h3 class="section-title">收货地址</h3>
-        <div class="address-list" v-if="addresses.length">
-          <div
-            v-for="address in addresses"
-            :key="address.id"
-            :class="['address-item', selectedAddress?.id === address.id ? 'active' : '']"
-            @click="selectAddress(address)"
-          >
-            <div class="address-info">
-              <div class="contact">
-                <span class="name">{{ address.name }}</span>
-                <span class="phone">{{ address.phone }}</span>
-              </div>
-              <div class="location">
-                {{ address.province + address.city + address.district + address.detail }}
-              </div>
+    <h2>订单结算页</h2>
+
+    <!-- 商品清单 -->
+    <el-card class="order-section">
+      <template #header>
+        <div class="section-header">商品清单</div>
+      </template>
+      
+      <div class="order-items">
+        <div v-for="item in selectedItems" :key="item.id" class="order-item">
+          <img :src="item.image" :alt="item.name" class="item-image">
+          <div class="item-info">
+            <div class="item-name">{{ item.name }}</div>
+            <!-- 添加规格信息 -->
+            <div class="item-specs">
+              <el-tag size="small" type="info">{{ item.specs?.color }}</el-tag>
+              <el-tag size="small" type="info">{{ item.specs?.memory }}</el-tag>
+              <el-tag size="small" type="info">{{ item.specs?.storage }}</el-tag>
             </div>
-            <div class="address-default" v-if="address.isDefault">默认</div>
+            <div class="item-store">{{ item.storeName }}</div>
           </div>
+          <div class="item-price">¥{{ item.price.toFixed(2) }}</div>
+          <div class="item-quantity">x{{ item.quantity }}</div>
+          <div class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
         </div>
-        <el-button type="primary" plain @click="addNewAddress">
-          <el-icon><Plus /></el-icon>添加新地址
-        </el-button>
-      </div>
-
-      <!-- 商品清单 -->
-      <div class="section order-section">
-        <h3 class="section-title">商品清单</h3>
-        <div class="order-items">
-          <div v-for="item in selectedItems" :key="item.id" class="order-item">
-            <img :src="item.image" :alt="item.name" class="item-image">
-            <div class="item-info">
-              <div class="item-name">{{ item.name }}</div>
-              <div class="item-attrs">
-                <el-tag size="small" type="info">{{ item.brandName }}</el-tag>
-                <el-tag size="small" type="info">{{ item.storeName }}</el-tag>
-              </div>
-            </div>
-            <div class="item-price">¥{{ item.price.toFixed(2) }}</div>
-            <div class="item-quantity">x{{ item.quantity }}</div>
-            <div class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 支付方式 -->
-      <div class="section payment-section">
-        <h3 class="section-title">支付方式</h3>
-        <div class="payment-methods">
-          <div
-            v-for="method in paymentMethods"
-            :key="method.id"
-            :class="['payment-method', selectedPayment?.id === method.id ? 'active' : '']"
-            @click="selectPayment(method)"
-          >
-            <img :src="method.icon" :alt="method.name" class="method-icon">
-            <span class="method-name">{{ method.name }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 订单金额 -->
-      <div class="section amount-section">
-        <div class="amount-item">
-          <span>商品总额：</span>
-          <span>¥{{ totalAmount.toFixed(2) }}</span>
-        </div>
-        <div class="amount-item">
-          <span>运费：</span>
-          <span>¥{{ shipping.toFixed(2) }}</span>
-        </div>
-        <div class="amount-item total">
-          <span>应付金额：</span>
-          <span class="final-price">¥{{ (totalAmount + shipping).toFixed(2) }}</span>
-        </div>
-      </div>
-
-      <!-- 提交订单 -->
-      <div class="submit-section">
-        <el-button type="primary" size="large" @click="submitOrder" :loading="submitting">
-          提交订单
-        </el-button>
       </div>
     </el-card>
+
+    <!-- 收货地址 -->
+    <el-card class="address-section">
+      <template #header>
+        <div class="section-header">
+          <span>收货地址</span>
+          <el-button type="primary" link @click="addNewAddress">
+            {{ selectedAddress ? '修改地址' : '添加地址' }}
+          </el-button>
+        </div>
+      </template>
+
+      <div v-if="selectedAddress" class="selected-address">
+        <div class="contact-info">
+          <span class="name">{{ selectedAddress.name }}</span>
+          <span class="phone">{{ selectedAddress.phone }}</span>
+        </div>
+        <div class="address-detail">
+          {{ selectedAddress.province }}{{ selectedAddress.city }}{{ selectedAddress.district }}
+          {{ selectedAddress.detail }}
+        </div>
+      </div>
+      <el-empty v-else description="请添加收货地址" />
+    </el-card>
+
+    <!-- 订单金额 -->
+    <div class="order-summary">
+      <div class="summary-item">
+        <span>商品总额：</span>
+        <span class="amount">¥{{ totalAmount.toFixed(2) }}</span>
+      </div>
+      <div class="summary-item">
+        <span>运费：</span>
+        <span class="amount">¥{{ shipping.toFixed(2) }}</span>
+      </div>
+      <div class="summary-item total">
+        <span>实付金额：</span>
+        <span class="amount">¥{{ (totalAmount + shipping).toFixed(2) }}</span>
+      </div>
+      <el-button 
+        type="primary" 
+        size="large" 
+        :disabled="!selectedAddress"
+        @click="submitOrder"
+      >
+        提交订单
+      </el-button>
+    </div>
   </div>
 </template>
 
@@ -185,17 +173,21 @@ const submitOrder = async () => {
     ElMessage.warning('请选择收货地址')
     return
   }
-  if (!selectedPayment.value) {
-    ElMessage.warning('请选择支付方式')
-    return
-  }
 
   submitting.value = true
   try {
-    // TODO: 实现提交订单的逻辑
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('订单提交成功')
-    
+    // 模拟创建订单
+    const orderData = {
+      orderId: Date.now().toString(), // 模拟订单ID
+      items: selectedItems.value,
+      address: selectedAddress.value,
+      totalAmount: totalAmount.value + shipping.value,
+      createTime: new Date().toISOString()
+    }
+
+    // 存储订单信息，以便在收银台使用
+    localStorage.setItem('pendingOrder', JSON.stringify(orderData))
+
     // 如果是从购物车来的，清除选中的商品
     if (!route.query.from) {
       cartStore.clearSelected()
@@ -203,7 +195,16 @@ const submitOrder = async () => {
     // 清除临时订单数据
     localStorage.removeItem('tempOrder')
     
-    router.push('/user/orders')
+    // 跳转到收银台页面
+    router.push({
+      path: '/payment',
+      query: {
+        orderId: orderData.orderId,
+        amount: orderData.totalAmount
+      }
+    })
+
+    ElMessage.success('订单创建成功，正在跳转到收银台...')
   } catch (error) {
     ElMessage.error('订单提交失败')
   } finally {
@@ -224,79 +225,24 @@ onUnmounted(() => {
   padding: 0 20px;
 }
 
-.section {
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.section:last-child {
-  border-bottom: none;
-}
-
-.section-title {
-  font-size: 18px;
+h2 {
   margin-bottom: 20px;
+  font-size: 24px;
   color: #333;
 }
 
-/* 地址样式 */
-.address-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.order-section {
   margin-bottom: 20px;
 }
 
-.address-item {
-  padding: 15px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
-}
-
-.address-item:hover {
-  border-color: var(--el-color-primary);
-}
-
-.address-item.active {
-  border-color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-}
-
-.contact {
-  margin-bottom: 8px;
-}
-
-.name {
-  font-weight: bold;
-  margin-right: 10px;
-}
-
-.phone {
-  color: #666;
-}
-
-.location {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.4;
-}
-
-.address-default {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 12px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  padding: 2px 6px;
-  border-radius: 2px;
-}
-
-/* 商品列表样式 */
 .order-items {
   display: flex;
   flex-direction: column;
@@ -320,84 +266,99 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-.item-name {
-  font-size: 14px;
-  margin-bottom: 8px;
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.item-attrs {
+.item-name {
+  font-size: 14px;
+  color: #333;
+}
+
+.item-specs {
   display: flex;
   gap: 8px;
 }
 
+.item-store {
+  font-size: 12px;
+  color: #999;
+}
+
 .item-price,
-.item-quantity,
-.item-subtotal {
-  font-size: 14px;
+.item-quantity {
   color: #666;
 }
 
 .item-subtotal {
-  font-weight: bold;
   color: #f56c6c;
+  font-weight: 500;
 }
 
-/* 支付方式样式 */
-.payment-methods {
-  display: flex;
-  gap: 20px;
+.address-section {
+  margin-bottom: 20px;
 }
 
-.payment-method {
-  padding: 15px 30px;
-  border: 1px solid #dcdfe6;
+.selected-address {
+  padding: 15px;
+  background: #f8f9fa;
   border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s;
 }
 
-.payment-method:hover {
-  border-color: var(--el-color-primary);
+.contact-info {
+  margin-bottom: 8px;
 }
 
-.payment-method.active {
-  border-color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
+.name {
+  font-weight: 500;
+  margin-right: 15px;
 }
 
-.method-icon {
-  width: 24px;
-  height: 24px;
-}
-
-/* 金额样式 */
-.amount-section {
-  text-align: right;
-}
-
-.amount-item {
-  margin-bottom: 10px;
+.phone {
   color: #666;
 }
 
-.amount-item.total {
-  font-size: 16px;
-  color: #333;
+.address-detail {
+  color: #666;
+  line-height: 1.5;
 }
 
-.final-price {
-  font-size: 24px;
+.order-summary {
+  background: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.summary-item .amount {
+  margin-left: 20px;
+  color: #666;
+}
+
+.summary-item.total {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.summary-item.total .amount {
+  font-size: 20px;
   color: #f56c6c;
   font-weight: bold;
 }
 
-/* 提交按钮样式 */
-.submit-section {
-  text-align: right;
+.el-button {
   margin-top: 20px;
+  width: 200px;
 }
 
 @media screen and (max-width: 768px) {
@@ -411,10 +372,6 @@ onUnmounted(() => {
   .item-subtotal {
     grid-column: 2;
     text-align: right;
-  }
-
-  .payment-methods {
-    flex-direction: column;
   }
 }
 </style> 

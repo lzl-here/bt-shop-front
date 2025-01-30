@@ -1,66 +1,61 @@
 <template>
   <div class="user-container">
-    <div class="user-sidebar">
-      <div class="user-info">
-        <div class="avatar">
-          <img :src="userStore.avatar || '/images/default-avatar.png'" alt="用户头像">
-        </div>
-        <div class="username">{{ userStore.username }}</div>
-      </div>
-      <nav class="sidebar-nav">
+    <!-- 侧边栏导航 -->
+    <div class="sidebar">
+      <div class="menu-group">
+        <div class="menu-title">个人中心</div>
         <router-link 
           to="/user/profile" 
-          class="nav-item"
+          class="menu-item"
           active-class="active"
         >
-          <i class="fas fa-user"></i>
+          <el-icon><UserFilled /></el-icon>
           个人资料
         </router-link>
         <router-link 
           to="/user/orders" 
-          class="nav-item"
+          class="menu-item"
           active-class="active"
         >
-          <i class="fas fa-shopping-bag"></i>
+          <el-icon><Document /></el-icon>
           我的订单
         </router-link>
-        <a @click="handleLogout" class="nav-item logout">
-          <i class="fas fa-sign-out-alt"></i>
-          退出登录
-        </a>
-      </nav>
+        <router-link 
+          to="/user/address" 
+          class="menu-item"
+          active-class="active"
+        >
+          <el-icon><Location /></el-icon>
+          收货地址
+        </router-link>
+      </div>
+
+      <div class="menu-group">
+        <div class="menu-title">账户设置</div>
+        <router-link 
+          to="/user/security" 
+          class="menu-item"
+          active-class="active"
+        >
+          <el-icon><Lock /></el-icon>
+          账户安全
+        </router-link>
+      </div>
     </div>
-    <div class="user-content">
-      <router-view></router-view>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </div>
   </div>
 </template>
 
-<script>
-import { useUserStore } from '../stores/user'
-import { useRouter } from 'vue-router'
-
-export default {
-  name: 'User',
-  setup() {
-    const userStore = useUserStore()
-    const router = useRouter()
-
-    const handleLogout = async () => {
-      try {
-        await userStore.logout()
-        router.push('/login')
-      } catch (error) {
-        console.error('退出登录失败:', error)
-      }
-    }
-
-    return {
-      userStore,
-      handleLogout
-    }
-  }
-}
+<script setup>
+import { UserFilled, Document, Location, Lock } from '@element-plus/icons-vue'
 </script>
 
 <style scoped>
@@ -70,98 +65,84 @@ export default {
   padding: 0 20px;
   display: flex;
   gap: 20px;
-  min-height: calc(100vh - 200px);
 }
 
-.user-sidebar {
+.sidebar {
   width: 240px;
-  background-color: #fff;
+  background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   padding: 20px 0;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  position: sticky;
+  top: 80px;
+  height: fit-content;
 }
 
-.user-info {
-  padding: 20px;
-  text-align: center;
-  border-bottom: 1px solid #eee;
+.menu-group {
+  padding: 0 16px;
+  margin-bottom: 24px;
 }
 
-.avatar {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 10px;
-  border-radius: 50%;
-  overflow: hidden;
+.menu-group:last-child {
+  margin-bottom: 0;
 }
 
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.menu-title {
+  color: #909399;
+  font-size: 13px;
+  padding: 0 12px;
+  margin-bottom: 8px;
 }
 
-.username {
-  font-size: 16px;
-  color: #333;
-  margin-top: 10px;
-}
-
-.sidebar-nav {
-  padding: 20px 0;
-}
-
-.nav-item {
+.menu-item {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
-  color: #666;
-  text-decoration: none;
+  gap: 8px;
+  padding: 12px;
+  color: #606266;
+  border-radius: 6px;
   transition: all 0.3s;
-  cursor: pointer;
+  margin-bottom: 4px;
+  text-decoration: none;
+  font-size: 14px;
 }
 
-.nav-item i {
-  margin-right: 10px;
-  width: 20px;
-  text-align: center;
+.menu-item:hover {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
 }
 
-.nav-item:hover {
-  color: var(--primary-color);
-  background-color: #f5f5f5;
+.menu-item.active {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+  font-weight: 500;
 }
 
-.nav-item.active {
-  color: var(--primary-color);
-  background-color: #f0f7ff;
-  border-right: 3px solid var(--primary-color);
+.menu-item :deep(.el-icon) {
+  font-size: 18px;
 }
 
-.logout {
-  color: #ff4d4f;
-}
-
-.logout:hover {
-  color: #ff4d4f;
-  background-color: #fff1f0;
-}
-
-.user-content {
+.main-content {
   flex: 1;
-  background-color: #fff;
+  background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  min-height: calc(100vh - 140px);
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .user-container {
     flex-direction: column;
   }
 
-  .user-sidebar {
+  .sidebar {
     width: 100%;
+    position: static;
+  }
+
+  .main-content {
+    min-height: auto;
   }
 }
 </style> 

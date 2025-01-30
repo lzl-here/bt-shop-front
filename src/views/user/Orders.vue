@@ -1,13 +1,15 @@
 <template>
-  <div class="content-container">
+  <div class="orders">
     <!-- 订单状态标签 -->
     <div class="order-tabs">
-      <div class="tab active">我的订单</div>
-      <div class="tab">全部订单</div>
-      <div class="tab">待付款</div>
-      <div class="tab">待收货</div>
-      <div class="tab">已完成</div>
-      <div class="tab logout-tab" @click="handleLogout">退出登录</div>
+      <div 
+        v-for="tab in tabs" 
+        :key="tab.value"
+        :class="['tab', { active: currentTab === tab.value }]"
+        @click="currentTab = tab.value"
+      >
+        {{ tab.label }}
+      </div>
     </div>
 
     <!-- 搜索框 -->
@@ -30,32 +32,72 @@
       <div v-for="order in orders" :key="order.id" class="order-item">
         <div class="order-header">
           <div class="order-info">
-            <span class="order-time">{{ order.orderTime }}</span>
-            <span class="order-number">订单号：{{ order.orderNumber }}</span>
+            <span class="order-time">{{ order.createTime }}</span>
+            <span class="order-id">订单号：{{ order.id }}</span>
             <span class="store-name">{{ order.storeName }}</span>
           </div>
-          <span class="order-status">{{ order.status }}</span>
+          <div class="order-status">{{ order.status }}</div>
         </div>
+        
         <div class="order-products">
           <div v-for="product in order.products" :key="product.id" class="product-item">
             <img :src="product.image" :alt="product.name">
             <div class="product-info">
               <div class="product-name">{{ product.name }}</div>
-              <div class="product-price">¥{{ product.price }}</div>
+              <div class="product-price">¥{{ product.price.toFixed(2) }}</div>
               <div class="product-quantity">x{{ product.quantity }}</div>
             </div>
           </div>
         </div>
+        
         <div class="order-footer">
-          <div class="order-total">
-            总计：<span class="price">¥{{ order.total }}</span>
+          <div class="order-amount">
+            总计：<span class="price">¥{{ order.totalAmount.toFixed(2) }}</span>
           </div>
           <div class="order-actions">
-            <el-button type="primary" link>订单详情</el-button>
+            <template v-if="order.status === '待付款'">
+              <el-button 
+                type="primary" 
+                @click="goToPayment(order)"
+              >
+                立即付款
+              </el-button>
+              <el-button 
+                type="danger" 
+                plain
+                @click="cancelOrder(order)"
+              >
+                取消订单
+              </el-button>
+            </template>
+            <el-button 
+              v-if="order.status === '待收货'" 
+              type="success"
+              @click="handleConfirm(order)"
+            >
+              确认收货
+            </el-button>
+            <el-button 
+              v-if="['已完成', '已取消'].includes(order.status)"
+              type="primary" 
+              link
+              @click="handleDelete(order)"
+            >
+              删除订单
+            </el-button>
+            <el-button type="primary" link @click="viewDetail(order)">
+              订单详情
+            </el-button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 空状态 -->
+    <el-empty
+      v-else
+      description="暂无订单"
+    />
 
     <!-- 分页 -->
     <div class="pagination-container">
@@ -63,7 +105,7 @@
         Total {{ total }}
         <el-select v-model="pageSize" class="page-size-select">
           <el-option
-            v-for="size in [12, 24, 36]"
+            v-for="size in [10, 20, 30]"
             :key="size"
             :label="`${size}/page`"
             :value="size"
@@ -92,48 +134,131 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../../stores/user'
 
 const router = useRouter()
-const userStore = useUserStore()
 
+// 订单状态标签
+const tabs = [
+  { label: '全部订单', value: 'all' },
+  { label: '待付款', value: 'unpaid' },
+  { label: '待发货', value: 'unshipped' },
+  { label: '待收货', value: 'unreceived' },
+  { label: '已完成', value: 'completed' }
+]
+
+const currentTab = ref('all')
 const searchText = ref('')
 const currentPage = ref(1)
-const pageSize = ref(12)
-const total = ref(25)
+const pageSize = ref(10)
+const total = ref(0)
 const goToPage = ref('')
 
-// 模拟更多订单数据
-const allOrders = Array.from({ length: 25 }, (_, index) => ({
+// 模拟订单数据
+const mockOrders = Array.from({ length: 25 }, (_, index) => ({
   id: index + 1,
   orderTime: '2024-03-20 14:30:00',
-  orderNumber: `O202403200000${(index + 1).toString().padStart(3, '0')}`,
-  storeName: index % 2 === 0 ? '跨境贸易6666' : '杭州潘小二X123',
-  status: '已关闭',
-  total: (index + 1) * 1000,
+  orderNumber: `ORDER20240320${String(index + 1).padStart(3, '0')}`,
+  storeName: '华为官方旗舰店',
+  status: ['待付款', '待发货', '待收货', '已完成', '已取消'][index % 5],
+  total: 6999.00,
   products: [
     {
-      id: index + 1,
-      name: `商品${index + 1}`,
-      price: (index + 1) * 1000,
+      id: 1,
+      name: 'HUAWEI Mate 60 Pro',
+      price: 6999.00,
       quantity: 1,
       image: 'https://via.placeholder.com/80'
     }
   ]
 }))
 
-// 表格数据使用计算属性
+// 根据当前标签筛选订单
 const orders = computed(() => {
+  let filteredOrders = mockOrders
+  if (currentTab.value !== 'all') {
+    const statusMap = {
+      unpaid: '待付款',
+      unshipped: '待发货',
+      unreceived: '待收货',
+      completed: '已完成'
+    }
+    filteredOrders = mockOrders.filter(order => order.status === statusMap[currentTab.value])
+  }
+  if (searchText.value) {
+    filteredOrders = filteredOrders.filter(order => 
+      order.orderNumber.toLowerCase().includes(searchText.value.toLowerCase())
+    )
+  }
+  total.value = filteredOrders.length
   const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return allOrders.slice(start, end)
+  return filteredOrders.slice(start, start + pageSize.value)
 })
 
+// 获取状态样式
+const getStatusClass = (status) => {
+  const classMap = {
+    '待付款': 'warning',
+    '待发货': 'info',
+    '待收货': 'primary',
+    '已完成': 'success',
+    '已取消': 'danger'
+  }
+  return classMap[status]
+}
+
+// 跳转到收银台
+const goToPayment = (order) => {
+  router.push({
+    path: '/payment',
+    query: {
+      orderId: order.id,
+      amount: order.totalAmount
+    }
+  })
+}
+
+// 确认收货
+const handleConfirm = (order) => {
+  ElMessageBox.confirm(
+    '确认已收到商品？',
+    '确认收货',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    ElMessage.success('确认收货成功')
+    order.status = '已完成'
+  })
+}
+
+// 删除订单
+const handleDelete = (order) => {
+  ElMessageBox.confirm(
+    '确定要删除该订单吗？',
+    '删除订单',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    ElMessage.success('订单已删除')
+    // TODO: 实现删除逻辑
+  })
+}
+
+// 查看订单详情
+const viewDetail = (order) => {
+  router.push(`/user/orders/${order.id}`)
+}
+
+// 分页相关
 const handleCurrentChange = (val) => {
   currentPage.value = val
 }
@@ -146,76 +271,65 @@ const handleGoToPage = () => {
   goToPage.value = ''
 }
 
-// 监听页码大小变化
-watch(pageSize, () => {
-  currentPage.value = 1
-})
-
-// 退出登录处理
-const handleLogout = () => {
-  ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-    draggable: true,
-    center: true,
-    closeOnClickModal: false
+// 取消订单
+const cancelOrder = (order) => {
+  ElMessageBox.confirm(
+    '确定要取消该订单吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    // TODO: 实现取消订单的逻辑
+    ElMessage.success('订单已取消')
+    // 更新订单状态
+    order.status = '已取消'
   })
-    .then(() => {
-      userStore.logout()
-      ElMessage.success('已退出登录')
-      router.push('/login')
-    })
-    .catch(() => {
-      // 用户取消时不做任何操作
-    })
 }
 </script>
 
 <style scoped>
-.content-container {
-  width: 100%;
-  padding: 0;  /* 移除内边距 */
+.orders {
+  padding: 20px;
   background-color: #f5f7fa;
+  min-height: calc(100vh - 60px);
 }
 
 .order-tabs {
   display: flex;
-  gap: 120px;  /* 减小间距 */
+  gap: 40px;
   margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-  padding: 0 0 10px 0;
-  background-color: #fff;
+  background: #fff;
+  padding: 0 20px;
+  border-radius: 4px;
 }
 
 .tab {
-  font-size: 16px;
-  color: #666;
+  padding: 15px 0;
   cursor: pointer;
-  padding: 15px 0;  /* 移除左右内边距，只保留上下内边距 */
   position: relative;
-}
-
-.tab:first-child {
-  padding-left: 20px;  /* 只给第一个标签添加左边距 */
+  color: #606266;
 }
 
 .tab.active {
-  color: #ff4d4f;
+  color: var(--el-color-primary);
+  font-weight: 500;
 }
 
 .tab.active::after {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: 0;
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #ff4d4f;
+  background-color: var(--el-color-primary);
 }
 
 .search-box {
-  margin: 20px;
+  margin-bottom: 20px;
 }
 
 .search-input {
@@ -223,105 +337,109 @@ const handleLogout = () => {
 }
 
 .order-item {
-  background-color: #fff;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  margin-bottom: 15px;  /* 减小底部间距 */
+  background: #fff;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
 }
 
 .order-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-  background-color: #fafafa;
+  align-items: center;
 }
 
 .order-info {
   display: flex;
-  gap: 15px;
-  color: #666;
-  font-size: 13px;
+  gap: 20px;
+  color: #909399;
+  font-size: 14px;
 }
 
 .store-name {
-  color: #409eff;
-  font-size: 13px;
+  color: var(--el-color-primary);
 }
 
 .order-status {
-  color: #ff4d4f;
-  font-size: 13px;
+  font-weight: 500;
 }
 
+.order-status.warning { color: var(--el-color-warning) }
+.order-status.info { color: var(--el-color-info) }
+.order-status.primary { color: var(--el-color-primary) }
+.order-status.success { color: var(--el-color-success) }
+.order-status.danger { color: var(--el-color-danger) }
+
 .order-products {
-  padding: 15px;
+  padding: 20px;
 }
 
 .product-item {
   display: flex;
-  margin-bottom: 12px;
-}
-
-.product-item:last-child {
-  margin-bottom: 0;
+  gap: 15px;
+  padding: 10px 0;
 }
 
 .product-item img {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border-radius: 4px;
 }
 
 .product-info {
-  margin-left: 12px;
   flex: 1;
 }
 
 .product-name {
-  font-size: 13px;
-  color: #333;
-  margin-bottom: 4px;
+  font-size: 14px;
+  margin-bottom: 8px;
 }
 
 .product-price {
-  color: #ff4d4f;
-  font-size: 13px;
+  color: #f56c6c;
+  font-weight: 500;
+  margin-bottom: 4px;
 }
 
 .product-quantity {
-  color: #999;
-  font-size: 12px;
-}
-
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  border-top: 1px solid #eee;
-  background-color: #fafafa;
-}
-
-.order-total {
-  color: #666;
+  color: #909399;
   font-size: 13px;
 }
 
-.order-total .price {
-  color: #ff4d4f;
-  font-size: 16px;
+.order-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-amount {
+  color: #606266;
+}
+
+.order-amount .price {
+  color: #f56c6c;
+  font-size: 18px;
   font-weight: bold;
+}
+
+.order-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .pagination-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #fff;
+  padding: 15px 20px;
+  border-radius: 4px;
   margin-top: 20px;
-  padding: 20px;
-  color: #666;
 }
 
 .pagination-left {
@@ -356,37 +474,5 @@ const handleLogout = () => {
 
 :deep(.el-input__inner) {
   text-align: center;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  box-shadow: none;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-}
-
-:deep(.el-pagination .el-pager li) {
-  border: none;
-  background: none;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  color: #409eff;
-  font-weight: bold;
-}
-
-:deep(.el-pagination button:disabled) {
-  background: none;
-}
-
-/* 修改退出登录按钮样式 */
-.logout-tab {
-  margin-left: auto;  /* 将退出登录推到最右边 */
-  color: #ff4d4f;
-  cursor: pointer;
-  padding: 15px 20px !important;  /* 增加点击区域 */
-}
-
-.logout-tab:hover {
-  opacity: 0.8;
 }
 </style> 

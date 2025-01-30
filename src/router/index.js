@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import { useUserStore } from '../stores/user'
-import ProductSearch from '../views/product/ProductSearch.vue'
-import ProductDetail from '../views/ProductDetail.vue'
 
 const routes = [
   {
@@ -12,13 +10,13 @@ const routes = [
   },
   {
     path: '/products',
-    name: 'products',
-    component: ProductSearch
+    name: 'Products',
+    component: () => import('../views/product/ProductSearch.vue')
   },
   {
     path: '/products/:id',
     name: 'ProductDetail',
-    component: ProductDetail
+    component: () => import('../views/ProductDetail.vue')
   },
   {
     path: '/categories',
@@ -42,19 +40,32 @@ const routes = [
   },
   {
     path: '/user',
-    name: 'User',
     component: () => import('../views/User.vue'),
     meta: { requiresAuth: true },
     children: [
+      {
+        path: '',
+        redirect: '/user/profile'
+      },
+      {
+        path: 'profile',
+        name: 'UserProfile',
+        component: () => import('../views/user/Profile.vue')
+      },
       {
         path: 'orders',
         name: 'UserOrders',
         component: () => import('../views/user/Orders.vue')
       },
       {
-        path: 'profile',
-        name: 'UserProfile',
-        component: () => import('../views/user/Profile.vue')
+        path: 'address',
+        name: 'UserAddress',
+        component: () => import('../views/user/Address.vue')
+      },
+      {
+        path: 'security',
+        name: 'UserSecurity',
+        component: () => import('../views/user/Security.vue')
       }
     ]
   },
@@ -62,22 +73,24 @@ const routes = [
     path: '/checkout',
     name: 'Checkout',
     component: () => import('../views/order/Checkout.vue'),
-    meta: {
-      requiresAuth: true
-    }
+    meta: { requiresAuth: true }
   },
   {
     path: '/seller',
     name: 'SellerDashboard',
     component: () => import('../views/seller/SellerDashboard.vue'),
-    meta: {
-      requiresAuth: true
-    }
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/payment',
+    name: 'Payment',
+    component: () => import('../views/order/Payment.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes
 })
 

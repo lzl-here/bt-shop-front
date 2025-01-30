@@ -1,111 +1,103 @@
 <template>
   <div class="cart-container">
-    <el-card class="cart-card">
-      <!-- 购物车头部 -->
-      <template #header>
-        <div class="cart-header">
-          <div class="header-left">
-            <el-checkbox v-model="isAllSelected" @change="handleSelectAll">
-              全选
-            </el-checkbox>
-            <span class="header-title">商品信息</span>
-          </div>
-          <div class="header-right">
-            <span class="column-label">单价</span>
-            <span class="column-label">数量</span>
-            <span class="column-label">小计</span>
-            <span class="column-label">操作</span>
-          </div>
-        </div>
-      </template>
+    <div class="cart-header">
+      <h2>购物车</h2>
+      <div class="cart-summary">共 {{ cartStore.totalItems }} 件商品</div>
+    </div>
 
-      <!-- 购物车列表 -->
-      <div v-if="cartStore.items.length" class="cart-list">
-        <div v-for="item in cartStore.items" :key="item.id" class="cart-item">
-          <div class="item-main">
-            <el-checkbox v-model="item.selected" @change="updateSelectAll" />
-            <img :src="item.image" :alt="item.name" class="item-image">
-            <div class="item-info">
-              <div class="item-name">{{ item.name }}</div>
-              <div class="item-desc">{{ item.description }}</div>
-              <div class="item-attrs">
-                <el-tag size="small" type="info">{{ item.brandName }}</el-tag>
-                <el-tag size="small" type="info">{{ item.storeName }}</el-tag>
+    <!-- 购物车列表 -->
+    <div class="cart-list" v-if="cartStore.items.length">
+      <el-table :data="cartStore.items" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" />
+        
+        <el-table-column label="商品信息" min-width="400">
+          <template #default="{ row }">
+            <div class="product-info">
+              <el-image :src="row.image" class="product-image" />
+              <div class="product-detail">
+                <div class="product-name">{{ row.name }}</div>
+                <div class="product-specs">
+                  <el-tag size="small" type="info">{{ row.specs?.color }}</el-tag>
+                  <el-tag size="small" type="info">{{ row.specs?.memory }}</el-tag>
+                  <el-tag size="small" type="info">{{ row.specs?.storage }}</el-tag>
+                </div>
+                <div class="store-name">{{ row.storeName }}</div>
               </div>
             </div>
-          </div>
-          <div class="item-price">¥{{ item.price.toFixed(2) }}</div>
-          <div class="item-quantity">
+          </template>
+        </el-table-column>
+
+        <el-table-column label="单价" width="120" align="center">
+          <template #default="{ row }">
+            <span class="price">¥{{ row.price }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="数量" width="150" align="center">
+          <template #default="{ row }">
             <el-input-number 
-              v-model="item.quantity" 
+              v-model="row.quantity" 
               :min="1" 
               :max="99"
               size="small"
-              @change="updateTotal"
+              @change="(value) => handleQuantityChange(row, value)"
             />
-          </div>
-          <div class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
-          <div class="item-actions">
-            <el-popconfirm
-              title="确定要从购物车中移除该商品吗？"
-              @confirm="removeItem(item)"
-            >
-              <template #reference>
-                <el-button 
-                  type="danger" 
-                  circle
-                  size="small"
-                >
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-popconfirm>
-          </div>
-        </div>
-      </div>
+          </template>
+        </el-table-column>
 
-      <!-- 空购物车提示 -->
-      <el-empty 
-        v-else 
-        description="购物车是空的"
-      >
-        <el-button type="primary" @click="$router.push('/products')">
-          去购物
-        </el-button>
-      </el-empty>
+        <el-table-column label="小计" width="120" align="center">
+          <template #default="{ row }">
+            <span class="subtotal">¥{{ (row.price * row.quantity).toFixed(2) }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="100" align="center">
+          <template #default="{ row }">
+            <el-button 
+              type="danger" 
+              link
+              @click="removeItem(row)"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
       <!-- 购物车底部 -->
-      <div v-if="cartStore.items.length" class="cart-footer">
-        <div class="footer-left">
-          <el-checkbox v-model="isAllSelected" @change="handleSelectAll">
-            全选
-          </el-checkbox>
-          <el-button 
-            type="text" 
-            class="delete-selected"
-            @click="removeSelected"
-          >
-            删除选中商品
-          </el-button>
+      <div class="cart-footer">
+        <div class="left">
+          <el-checkbox v-model="selectAll" @change="handleSelectAll">全选</el-checkbox>
+          <el-button type="danger" link @click="clearCart">清空购物车</el-button>
         </div>
-        <div class="footer-right">
-          <div class="cart-total">
-            <span>已选择 {{ selectedCount }} 件商品</span>
+        <div class="right">
+          <div class="total-info">
+            已选择 <span class="selected-count">{{ selectedItems.length }}</span> 件商品
             <span class="total-price">
               合计：<span class="price">¥{{ totalPrice.toFixed(2) }}</span>
             </span>
           </div>
           <el-button 
             type="primary" 
-            size="large"
-            :disabled="!selectedCount"
-            @click="handleCheckout"
+            size="large" 
+            :disabled="!selectedItems.length"
+            @click="checkout"
           >
             结算
           </el-button>
         </div>
       </div>
-    </el-card>
+    </div>
+
+    <!-- 空购物车 -->
+    <el-empty 
+      v-else 
+      description="购物车是空的"
+    >
+      <el-button type="primary" @click="$router.push('/products')">
+        去购物
+      </el-button>
+    </el-empty>
   </div>
 </template>
 
@@ -114,60 +106,34 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const cartStore = useCartStore()
-const isAllSelected = ref(false)
+const selectedItems = ref([])
+const selectAll = ref(false)
 
-// 计算选中商品数量
-const selectedCount = computed(() => {
-  return cartStore.items.filter(item => item.selected).length
-})
+// 处理选择变化
+const handleSelectionChange = (selection) => {
+  selectedItems.value = selection
+  selectAll.value = selection.length === cartStore.items.length
+}
 
-// 计算总价
-const totalPrice = computed(() => {
-  return cartStore.items
-    .filter(item => item.selected)
-    .reduce((total, item) => total + item.price * item.quantity, 0)
-})
-
-// 全选/取消全选
+// 处理全选
 const handleSelectAll = (val) => {
   cartStore.items.forEach(item => {
     item.selected = val
   })
 }
 
-// 更新全选状态
-const updateSelectAll = () => {
-  isAllSelected.value = cartStore.items.length > 0 && 
-    cartStore.items.every(item => item.selected)
+// 处理数量变化
+const handleQuantityChange = (item, value) => {
+  cartStore.updateQuantity(item.id, value)
 }
 
 // 移除商品
 const removeItem = (item) => {
-  cartStore.removeFromCart(item.id)
-  ElMessage({
-    type: 'success',
-    message: '商品已从购物车移除'
-  })
-}
-
-// 结算
-const handleCheckout = () => {
-  router.push('/checkout')
-}
-
-// 删除选中商品
-const removeSelected = () => {
-  if (!selectedCount.value) {
-    ElMessage.warning('请先选择要删除的商品')
-    return
-  }
-
   ElMessageBox.confirm(
-    '确定要删除选中的商品吗？',
+    '确定要从购物车中移除该商品吗？',
     '提示',
     {
       confirmButtonText: '确定',
@@ -175,15 +141,42 @@ const removeSelected = () => {
       type: 'warning'
     }
   ).then(() => {
-    cartStore.removeSelected()
-    ElMessage({
-      type: 'success',
-      message: '已删除选中的商品'
-    })
-    // 更新全选状态
-    updateSelectAll()
+    cartStore.removeFromCart(item.id)
+    ElMessage.success('商品已移除')
   })
 }
+
+// 清空购物车
+const clearCart = () => {
+  ElMessageBox.confirm(
+    '确定要清空购物车吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    cartStore.clearCart()
+    ElMessage.success('购物车已清空')
+  })
+}
+
+// 结算
+const checkout = () => {
+  if (!selectedItems.value.length) {
+    ElMessage.warning('请先选择要结算的商品')
+    return
+  }
+  router.push('/checkout')
+}
+
+// 计算总价
+const totalPrice = computed(() => {
+  return selectedItems.value.reduce((total, item) => {
+    return total + item.price * item.quantity
+  }, 0)
+})
 </script>
 
 <style scoped>
@@ -194,165 +187,81 @@ const removeSelected = () => {
 }
 
 .cart-header {
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
 }
 
-.header-left {
+.product-info {
   display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.header-title {
-  font-size: 14px;
-  color: #666;
-}
-
-.header-right {
-  display: flex;
-  gap: 100px;
-}
-
-.column-label {
-  font-size: 14px;
-  color: #666;
-}
-
-.cart-list {
-  display: flex;
-  flex-direction: column;
   gap: 15px;
 }
 
-.cart-item {
-  display: grid;
-  grid-template-columns: auto 100px 150px 100px 80px;
-  align-items: center;
-  gap: 20px;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.item-main {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.item-image {
-  width: 100px;
-  height: 100px;
+.product-image {
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border-radius: 4px;
 }
 
-.item-info {
+.product-detail {
   flex: 1;
 }
 
-.item-name {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.item-desc {
+.product-name {
   font-size: 14px;
-  color: #666;
   margin-bottom: 8px;
 }
 
-.item-attrs {
+.product-specs {
   display: flex;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
-.item-price,
-.item-subtotal {
-  font-size: 16px;
-  color: #f56c6c;
-  text-align: center;
-}
-
-.item-quantity {
-  text-align: center;
-}
-
-.item-actions {
-  text-align: center;
-}
-
-.cart-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  margin-top: 20px;
-  border-top: 1px solid #eee;
-}
-
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.delete-selected {
-  color: #666;
-}
-
-.delete-selected:hover {
-  color: #f56c6c;
-}
-
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.total-price {
-  margin-left: 20px;
+.store-name {
+  font-size: 12px;
+  color: #999;
 }
 
 .price {
   color: #f56c6c;
-  font-size: 20px;
   font-weight: bold;
 }
 
-@media screen and (max-width: 768px) {
-  .cart-item {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
+.cart-footer {
+  margin-top: 20px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f8f8;
+  border-radius: 4px;
+}
 
-  .header-right {
-    display: none;
-  }
+.left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 
-  .item-main {
-    flex-wrap: wrap;
-  }
+.right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 
-  .item-price,
-  .item-subtotal,
-  .item-quantity,
-  .item-actions {
-    text-align: left;
-    padding-left: 44px;
-  }
+.total-info {
+  font-size: 14px;
+}
 
-  .cart-footer {
-    flex-direction: column;
-    gap: 20px;
-  }
+.selected-count {
+  color: #f56c6c;
+  font-weight: bold;
+}
 
-  .footer-right {
-    width: 100%;
-    flex-direction: column;
-  }
+.total-price {
+  margin-left: 20px;
 }
 </style> 

@@ -3,9 +3,41 @@ import { HomeFilled, Goods, Shop, ShoppingCart } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
 import { useCartStore } from './stores/cart'
 import FooterComponent from './components/FooterComponent.vue'
+import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
 
+const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+
+// 处理下拉菜单命令
+const handleCommand = async (command) => {
+  switch (command) {
+    case 'profile':
+      await router.push('/user/profile')
+      break
+    case 'orders':
+      await router.push('/user/orders')
+      break
+    case 'logout':
+      try {
+        await ElMessageBox.confirm(
+          '确定要退出登录吗？',
+          '提示',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        userStore.logout()
+        await router.push('/login')
+      } catch (error) {
+        // 用户取消操作
+      }
+      break
+  }
+}
 </script>
 
 <template>
@@ -18,15 +50,20 @@ const cartStore = useCartStore()
           bt-shop
         </router-link>
         <div class="nav-links">
-          <router-link to="/" class="nav-item">
+          <router-link to="/" class="nav-item" active-class="active">
             <el-icon><HomeFilled /></el-icon>
             首页
           </router-link>
-          <router-link to="/products" class="nav-item">
+          <router-link to="/products" class="nav-item" active-class="active">
             <el-icon><Goods /></el-icon>
             全部商品
           </router-link>
-          <router-link v-if="userStore.isLoggedIn" to="/seller" class="nav-item">
+          <router-link 
+            v-if="userStore.isLoggedIn" 
+            to="/seller" 
+            class="nav-item"
+            active-class="active"
+          >
             <el-icon><Shop /></el-icon>
             我的店铺
           </router-link>
@@ -42,12 +79,10 @@ const cartStore = useCartStore()
           </router-link>
 
           <!-- 用户登录状态 -->
-          <router-link v-if="!userStore.isLoggedIn" to="/login" class="login-btn">
-            登录
-          </router-link>
-          <router-link v-if="!userStore.isLoggedIn" to="/register" class="register-btn">
-            注册
-          </router-link>
+          <template v-if="!userStore.isLoggedIn">
+            <router-link to="/login" class="login-btn">登录</router-link>
+            <router-link to="/register" class="register-btn">注册</router-link>
+          </template>
           <el-dropdown v-else @command="handleCommand">
             <span class="user-info">
               <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/default-avatar.png'" />
@@ -65,7 +100,18 @@ const cartStore = useCartStore()
       </nav>
     </header>
 
-    <router-view></router-view>
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </transition>
+      </router-view>
+    </main>
+
+    <!-- 页脚 -->
     <FooterComponent />
   </div>
 </template>
@@ -120,10 +166,19 @@ const cartStore = useCartStore()
   font-size: 16px;
   color: #333;
   transition: color 0.3s;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
 }
 
 .nav-item:hover {
   color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+}
+
+.nav-item.active {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
 }
 
 .user-actions {
@@ -200,5 +255,22 @@ body {
 a {
   text-decoration: none;
   color: inherit;
+}
+
+.main-content {
+  flex: 1;
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 60px - 200px); /* 减去头部和底部的高度 */
+}
+
+/* 添加过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

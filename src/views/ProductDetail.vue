@@ -47,6 +47,54 @@
           </div>
         </div>
 
+        <!-- 规格选择 -->
+        <div class="specs-section">
+          <!-- 颜色规格 -->
+          <div class="spec-group">
+            <div class="spec-title">颜色</div>
+            <div class="spec-options">
+              <div
+                v-for="color in specs.colors"
+                :key="color.value"
+                :class="['spec-item', selectedSpecs.color === color.value ? 'active' : '']"
+                @click="selectSpec('color', color.value)"
+              >
+                {{ color.label }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 内存规格 -->
+          <div class="spec-group">
+            <div class="spec-title">内存</div>
+            <div class="spec-options">
+              <div
+                v-for="memory in specs.memory"
+                :key="memory.value"
+                :class="['spec-item', selectedSpecs.memory === memory.value ? 'active' : '']"
+                @click="selectSpec('memory', memory.value)"
+              >
+                {{ memory.label }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 存储规格 -->
+          <div class="spec-group">
+            <div class="spec-title">存储容量</div>
+            <div class="spec-options">
+              <div
+                v-for="storage in specs.storage"
+                :key="storage.value"
+                :class="['spec-item', selectedSpecs.storage === storage.value ? 'active' : '']"
+                @click="selectSpec('storage', storage.value)"
+              >
+                {{ storage.label }}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="quantity-section">
           <span class="label">数量</span>
           <el-input-number
@@ -86,7 +134,7 @@
             </div>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="规格参数" name="specs">
+        <el-tab-pane label="参数" name="specs">
           <el-descriptions :column="1" border>
             <el-descriptions-item 
               v-for="(spec, key) in product.specs" 
@@ -103,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 import { ElMessage } from 'element-plus'
@@ -115,8 +163,8 @@ const cartStore = useCartStore()
 const quantity = ref(1)
 const activeTab = ref('detail')
 
-// 模拟商品数据
-const product = ref({
+// 商品信息
+const product = reactive({
   id: Number(route.params.id),
   name: 'HUAWEI Mate 60 Pro',
   price: 6999,
@@ -143,23 +191,68 @@ const product = ref({
   }
 })
 
+// 规格选项
+const specs = reactive({
+  colors: [
+    { label: '墨玉青', value: 'blue' },
+    { label: '雅川青', value: 'green' },
+    { label: '霜雪白', value: 'white' }
+  ],
+  memory: [
+    { label: '8GB', value: '8' },
+    { label: '12GB', value: '12' },
+    { label: '16GB', value: '16' }
+  ],
+  storage: [
+    { label: '256GB', value: '256' },
+    { label: '512GB', value: '512' },
+    { label: '1TB', value: '1024' }
+  ]
+})
+
+// 选中的规格
+const selectedSpecs = reactive({
+  color: '',
+  memory: '',
+  storage: ''
+})
+
 // 选择图片
 const selectImage = (img) => {
-  product.value.image = img
+  product.image = img
+}
+
+// 选择规格
+const selectSpec = (type, value) => {
+  selectedSpecs[type] = value
+}
+
+// 检查是否已选择所有规格
+const checkSpecsSelected = () => {
+  return selectedSpecs.color && selectedSpecs.memory && selectedSpecs.storage
 }
 
 // 加入购物车
 const addToCart = () => {
+  if (!checkSpecsSelected()) {
+    ElMessage.warning('请选择商品规格')
+    return
+  }
   const productToAdd = {
-    id: product.value.id,
-    name: product.value.name,
-    price: product.value.price,
-    description: product.value.description,
-    image: product.value.image,
-    brandName: product.value.brandName,
-    storeName: product.value.storeName,
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    description: product.description,
+    image: product.image,
+    brandName: product.brandName,
+    storeName: product.storeName,
     quantity: quantity.value,
-    selected: true
+    selected: true,
+    specs: {
+      color: specs.colors.find(c => c.value === selectedSpecs.color)?.label,
+      memory: specs.memory.find(m => m.value === selectedSpecs.memory)?.label,
+      storage: specs.storage.find(s => s.value === selectedSpecs.storage)?.label
+    }
   }
   
   cartStore.addToCart(productToAdd)
@@ -172,16 +265,25 @@ const addToCart = () => {
 
 // 立即购买
 const buyNow = () => {
+  if (!checkSpecsSelected()) {
+    ElMessage.warning('请选择商品规格')
+    return
+  }
   const orderItem = {
-    id: product.value.id,
-    name: product.value.name,
-    price: product.value.price,
-    description: product.value.description,
-    image: product.value.image,
-    brandName: product.value.brandName,
-    storeName: product.value.storeName,
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    description: product.description,
+    image: product.image,
+    brandName: product.brandName,
+    storeName: product.storeName,
     quantity: quantity.value,
-    selected: true
+    selected: true,
+    specs: {
+      color: specs.colors.find(c => c.value === selectedSpecs.color)?.label,
+      memory: specs.memory.find(m => m.value === selectedSpecs.memory)?.label,
+      storage: specs.storage.find(s => s.value === selectedSpecs.storage)?.label
+    }
   }
 
   localStorage.setItem('tempOrder', JSON.stringify([orderItem]))
@@ -197,22 +299,20 @@ onMounted(async () => {
   // TODO: 这里应该从后端获取商品详情
   // 目前使用模拟数据
   const productId = Number(route.params.id)
-  product.value = {
-    id: productId,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    description: '华为年度旗舰手机，搭载麒麟芯片，超长续航',
-    image: 'https://via.placeholder.com/400x400',
-    brandName: 'HUAWEI',
-    storeName: '华为官方旗舰店',
-    sales: 1000,
-    specs: {
-      '屏幕尺寸': '6.76英寸',
-      '分辨率': 'FHD+ 2772',
-      '刷新率': '90Hz',
-      '处理器': '麒麟芯片',
-      '电池容量': '5000mAh'
-    }
+  product.id = productId
+  product.name = 'HUAWEI Mate 60 Pro'
+  product.price = 6999
+  product.description = '华为年度旗舰手机，搭载麒麟芯片，超长续航'
+  product.image = 'https://via.placeholder.com/400x400'
+  product.brandName = 'HUAWEI'
+  product.storeName = '华为官方旗舰店'
+  product.sales = 1000
+  product.specs = {
+    '屏幕尺寸': '6.76英寸',
+    '分辨率': 'FHD+ 2772',
+    '刷新率': '90Hz',
+    '处理器': '麒麟芯片',
+    '电池容量': '5000mAh'
   }
 })
 </script>
@@ -341,6 +441,47 @@ onMounted(async () => {
   flex-direction: column;
   gap: 20px;
   padding: 20px 0;
+}
+
+.specs-section {
+  margin-bottom: 30px;
+}
+
+.spec-group {
+  margin-bottom: 20px;
+}
+
+.spec-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.spec-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.spec-item {
+  padding: 8px 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  color: #606266;
+}
+
+.spec-item:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.spec-item.active {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 @media screen and (max-width: 768px) {
