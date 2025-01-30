@@ -8,6 +8,7 @@ import UserProfile from '../views/user/Profile.vue'
 import UserTrade from '../views/user/Trade.vue'
 import UserAddress from '../views/user/Address.vue'
 import UserSecurity from '../views/user/Security.vue'
+import ProductSearch from '../views/product/ProductSearch.vue'  
 
 const routes = [
   {
@@ -79,6 +80,11 @@ const routes = [
         path: 'security',
         name: 'UserSecurity',
         component: UserSecurity
+      },
+      {
+        path: 'orders/:orderId',
+        name: 'OrderDetail',
+        component: () => import('../views/user/OrderDetail.vue')
       }
     ]
   },
@@ -99,6 +105,22 @@ const routes = [
     name: 'Payment',
     component: () => import('../views/trades/Payment.vue'),
     meta: { requiresAuth: true }
+  }
+  ,
+  {
+    path: '/search',
+    name: 'SearchResult',
+    component: () => import('../views/search/SearchResult.vue'),
+    props: (route) => ({
+      keyword: route.query.keyword,
+      searchType: route.query.type || 'product',
+      total: Number(route.query.total) || 0
+    })
+  },
+  {
+    path: '/store/:id',
+    name: 'StoreDetail',
+    component: () => import('../views/store/StoreDetail.vue')
   }
 ]
 

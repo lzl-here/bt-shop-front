@@ -12,19 +12,53 @@
             <el-icon><HomeFilled /></el-icon>
             首页
           </router-link>
-          <router-link to="/products" class="nav-item">
+          <router-link 
+            to="/productes" 
+            class="nav-item"
+            :class="{ active: isProductSearch }"
+          >
             <el-icon><Goods /></el-icon>
-            全部商品
+            搜索商品
           </router-link>
-          <router-link to="/categories" class="nav-item">
-            <el-icon><Menu /></el-icon>
-            商品分类
+          <router-link 
+            to="/search?type=store" 
+            class="nav-item"
+            :class="{ active: isStoreSearch }"
+          >
+            <el-icon><Shop /></el-icon>
+            搜索店铺
           </router-link>
           <router-link v-if="userStore.isLoggedIn" to="/seller" class="nav-item">
             <el-icon><Shop /></el-icon>
             我的店铺
           </router-link>
         </nav>
+      </div>
+
+      <!-- 搜索框 -->
+      <div class="search-section">
+        <el-input
+          v-model="searchText"
+          placeholder="搜索店铺"
+          class="search-input"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <el-select 
+              v-model="searchType" 
+              class="search-type-select"
+              popper-class="search-type-popper"
+            >
+              <el-option label="商品" value="product" />
+              <el-option label="店铺" value="store" />
+            </el-select>
+          </template>
+          <template #append>
+            <el-button @click="handleSearch">
+              <el-icon><Search /></el-icon>
+            </el-button>
+          </template>
+        </el-input>
       </div>
 
       <!-- 用户操作区 -->
@@ -62,7 +96,8 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useCartStore } from '../stores/cart'
 import { 
@@ -70,13 +105,42 @@ import {
   Shop, 
   HomeFilled, 
   Goods, 
-  Menu 
+  Menu,
+  Search 
 } from '@element-plus/icons-vue'
 import Logo from './Logo.vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+
+const searchText = ref('')
+const searchType = ref('product')
+
+// 判断当前是否为商品搜索页面
+const isProductSearch = computed(() => {
+  return route.path === '/search' && route.query.type === 'product'
+})
+
+// 判断当前是否为店铺搜索页面
+const isStoreSearch = computed(() => {
+  return route.path === '/search' && route.query.type === 'store'
+})
+
+const handleSearch = () => {
+  if (!searchText.value.trim()) return
+  
+  const query = {
+    keyword: searchText.value,
+    type: searchType.value
+  }
+  
+  router.push({
+    path: '/search',
+    query
+  })
+}
 
 const handleCommand = (command) => {
   switch (command) {
@@ -201,6 +265,46 @@ const handleCommand = (command) => {
   color: var(--el-color-primary);
 }
 
+.search-section {
+  flex: 1;
+  max-width: 500px;
+  margin: 0 40px;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.search-input :deep(.el-input-group__prepend) {
+  padding: 0;
+  border-right: none;
+  background-color: #fff;
+}
+
+.search-type-select {
+  width: 80px;
+  border: none;
+}
+
+.search-type-select :deep(.el-input__wrapper) {
+  box-shadow: none !important;
+  padding: 0 8px;
+}
+
+.search-type-select :deep(.el-input__inner) {
+  text-align: center;
+  cursor: pointer;
+}
+
+:deep(.search-type-popper) {
+  min-width: 80px !important;
+}
+
+:deep(.el-select-dropdown__item) {
+  padding: 0 12px;
+  text-align: center;
+}
+
 @media screen and (max-width: 768px) {
   .main-nav {
     display: none;
@@ -209,5 +313,10 @@ const handleCommand = (command) => {
   .left-section {
     gap: 0;
   }
+}
+
+.nav-item.active {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
 }
 </style> 

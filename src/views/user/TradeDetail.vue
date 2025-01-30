@@ -45,8 +45,16 @@
         </div>
       </template>
 
+      <!-- 添加订单信息标题 -->
+      <div class="section-title">订单信息</div>
+
       <div class="product-list">
-        <div v-for="product in order.products" :key="product.id" class="product-item">
+        <div 
+          v-for="product in order.products" 
+          :key="product.id" 
+          class="product-item"
+          @click="viewOrderDetail(order.id)"
+        >
           <img :src="product.image" :alt="product.name">
           <div class="product-info">
             <div class="product-name">{{ product.name }}</div>
@@ -216,6 +224,11 @@ const fetchTradeDetail = async () => {
   console.log('获取交易详情', route.params.tradeId)
 }
 
+// 查看订单详情
+const viewOrderDetail = (orderId) => {
+  router.push(`/user/orders/${orderId}`)
+}
+
 onMounted(() => {
   fetchTradeDetail()
 })
@@ -289,6 +302,12 @@ onMounted(() => {
   display: flex;
   gap: 15px;
   margin-bottom: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.product-item:hover {
+  background-color: #f5f7fa;
 }
 
 .product-item img {
@@ -362,5 +381,14 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+  margin-bottom: 16px;
+  padding-left: 8px;
+  border-left: 4px solid var(--el-color-primary);
 }
 </style> 

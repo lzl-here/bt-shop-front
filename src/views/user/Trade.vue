@@ -47,7 +47,12 @@
             </div>
 
             <div class="product-list">
-              <div v-for="product in order.products" :key="product.id" class="product-item">
+              <div 
+                v-for="product in order.products" 
+                :key="product.id" 
+                class="product-item"
+                @click="viewTradeDetail(trade.id)"
+              >
                 <img :src="product.image" :alt="product.name">
                 <div class="product-info">
                   <div class="product-name">{{ product.name }}</div>
@@ -56,8 +61,10 @@
                     <el-tag size="small" type="info">{{ product.specs.memory }}</el-tag>
                     <el-tag size="small" type="info">{{ product.specs.storage }}</el-tag>
                   </div>
-                  <div class="product-price">¥{{ product.price.toFixed(2) }}</div>
-                  <div class="product-quantity">x{{ product.quantity }}</div>
+                  <div class="product-price-info">
+                    <span class="price">¥{{ product.price.toFixed(2) }}</span>
+                    <span class="quantity">x{{ product.quantity }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -100,7 +107,7 @@
                 取消交易
               </el-button>
             </template>
-            <el-button type="primary" link @click="viewTradeDetail(trade)">
+            <el-button type="primary" link @click="viewTradeDetail(trade.id)">
               交易详情
             </el-button>
           </div>
@@ -290,8 +297,8 @@ const cancelTrade = (trade) => {
 }
 
 // 查看交易详情
-const viewTradeDetail = (trade) => {
-  router.push(`/user/trades/${trade.id}`)
+const viewTradeDetail = (tradeId) => {
+  router.push(`/user/trades/${tradeId}`)
 }
 
 // 分页相关
@@ -409,8 +416,19 @@ const handleGoToPage = () => {
 
 .product-item {
   display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.product-item:hover {
+  background-color: #f5f7fa;
+}
+
+.product-item:last-child {
+  border-bottom: none;
 }
 
 .product-item img {
@@ -422,26 +440,49 @@ const handleGoToPage = () => {
 
 .product-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 80px; /* 与图片等高 */
 }
 
 .product-name {
   font-size: 14px;
-  margin-bottom: 8px;
+  color: #333;
+  margin-bottom: 4px;
+  /* 文本超出两行显示省略号 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-specs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.product-price {
+.product-specs :deep(.el-tag) {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.product-price-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
   color: #f56c6c;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 4px;
 }
 
-.product-quantity {
+.quantity {
   color: #909399;
   font-size: 13px;
 }

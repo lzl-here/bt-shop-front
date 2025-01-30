@@ -3,12 +3,24 @@ import { HomeFilled, Goods, Shop, ShoppingCart } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
 import { useCartStore } from './stores/cart'
 import FooterComponent from './components/FooterComponent.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
+import { computed } from 'vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const route = useRoute()
+
+// 判断当前是否为商品搜索页面
+const isProductSearch = computed(() => {
+  return route.path === '/search' && route.query.type === 'product'
+})
+
+// 判断当前是否为店铺搜索页面
+const isStoreSearch = computed(() => {
+  return route.path === '/search' && route.query.type === 'store'
+})
 
 // 处理下拉菜单命令
 const handleCommand = async (command) => {
@@ -54,9 +66,21 @@ const handleCommand = async (command) => {
             <el-icon><HomeFilled /></el-icon>
             首页
           </router-link>
-          <router-link to="/products" class="nav-item" active-class="active">
+          <router-link 
+            to="/products" 
+            class="nav-item"
+            :class="{ active: isProductSearch }"
+          >
             <el-icon><Goods /></el-icon>
-            全部商品
+            搜索商品
+          </router-link>
+          <router-link 
+            to="/search?type=store" 
+            class="nav-item"
+            :class="{ active: isStoreSearch }"
+          >
+            <el-icon><Shop /></el-icon>
+            搜索店铺
           </router-link>
           <router-link 
             v-if="userStore.isLoggedIn" 
