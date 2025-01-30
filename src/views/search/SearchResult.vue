@@ -9,7 +9,10 @@
         @keyup.enter="handleSearch"
       >
         <template #prefix>
-          <div class="search-prefix">店铺</div>
+          <div class="search-prefix">
+            <el-icon><Shop /></el-icon>
+            店铺
+          </div>
         </template>
         <template #append>
           <el-button @click="handleSearch">
@@ -29,9 +32,9 @@
     </div>
 
     <!-- 店铺搜索结果 -->
-    <div class="store-list" v-if="stores.length">
+    <div class="store-list" v-if="currentStores.length">
       <el-card 
-        v-for="store in stores" 
+        v-for="store in currentStores" 
         :key="store.id" 
         class="store-item"
         @click="viewStore(store)"
@@ -77,9 +80,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Shop } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -100,8 +103,124 @@ const stores = ref([
     productCount: 386,
     salesCount: 15863,
     rating: 99
-  }
+  },
+  {
+    id: 1,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 3,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 4,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 5,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 6,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 7,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 8,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 9,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 10,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 11,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 12,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+  {
+    id: 13,
+    name: '华为官方旗舰店',
+    logo: 'https://via.placeholder.com/60',
+    description: '华为官方授权店铺，提供华为全系列产品',
+    productCount: 386,
+    salesCount: 15863,
+    rating: 99
+  },
+
 ])
+
+// 获取当前页的店铺数据
+const currentStores = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return stores.value.slice(start, end)
+})
 
 // 获取搜索结果
 const fetchSearchResult = async () => {
@@ -112,6 +231,7 @@ const fetchSearchResult = async () => {
     pageSize: pageSize.value
   })
   
+  // 设置总数为所有数据的长度
   total.value = stores.value.length
 }
 
@@ -267,6 +387,13 @@ onMounted(() => {
   color: #606266;
   font-size: 14px;
   border-right: 1px solid #dcdfe6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-prefix .el-icon {
+  font-size: 16px;
 }
 
 .search-input :deep(.el-input-group__prepend) {

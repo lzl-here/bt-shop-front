@@ -182,7 +182,7 @@
             <el-table-column label="操作" width="200">
               <template #default="{ row }">
                 <el-button 
-                  v-if="row.status === '待发货'"
+                  v-if="['已支付', '待发货', '部分发货'].includes(row.status)"
                   type="primary" 
                   size="small"
                   @click="handleOrderAction(row, 'ship')"
@@ -378,8 +378,8 @@ const orders = ref(Array.from({ length: 25 }, (_, index) => {
   const buyers = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十']
   const customerName = buyers[Math.floor(Math.random() * buyers.length)]
   
-  // 随机生成订单状态
-  const statuses = ['待付款', '待发货', '已发货', '已完成']
+  // 修改订单状态，增加已发货状态
+  const statuses = ['待付款', '已支付', '待发货', '部分发货', '已发货', '已完成']
   const status = statuses[Math.floor(Math.random() * statuses.length)]
   
   // 根据状态设置支付方式
@@ -399,7 +399,9 @@ const orders = ref(Array.from({ length: 25 }, (_, index) => {
         name: 'HUAWEI Mate 60 Pro',
         price: 6999.00,
         quantity,
-        image: 'https://via.placeholder.com/100'
+        image: 'https://via.placeholder.com/100',
+        status: status === '部分发货' ? (Math.random() > 0.5 ? '已发货' : '待发货') : 
+                status === '已完成' ? '已发货' : '待发货'
       }
     ]
   }
@@ -444,10 +446,14 @@ const getStatusType = (status) => {
   switch (status) {
     case '待付款':
       return 'warning'
-    case '待发货':
+    case '已支付':
       return 'info'
-    case '已发货':
+    case '待发货':
       return 'primary'
+    case '部分发货':
+      return 'warning'
+    case '已发货':
+      return 'success'
     case '已完成':
       return 'success'
     default:
@@ -469,7 +475,19 @@ const handleOrderAction = (order, action) => {
         }
       ).then(() => {
         ElMessage.success('发货成功')
-        order.status = '已发货'
+        // 如果是部分发货状态，检查是否所有商品都已发货
+        if (order.status === '部分发货') {
+          const allShipped = order.products.every(product => product.status === '已发货')
+          order.status = allShipped ? '已发货' : '部分发货'
+        } else {
+          order.status = '已发货'
+        }
+        // 更新商品发货状态
+        order.products.forEach(product => {
+          if (product.status === '待发货') {
+            product.status = '已发货'
+          }
+        })
       })
       break
     case 'detail':
