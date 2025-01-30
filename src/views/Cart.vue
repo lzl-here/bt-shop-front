@@ -46,14 +46,20 @@
           </div>
           <div class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
           <div class="item-actions">
-            <el-button 
-              type="danger" 
-              circle
-              size="small"
-              @click="removeItem(item)"
+            <el-popconfirm
+              title="确定要从购物车中移除该商品吗？"
+              @confirm="removeItem(item)"
             >
-              <el-icon><Delete /></el-icon>
-            </el-button>
+              <template #reference>
+                <el-button 
+                  type="danger" 
+                  circle
+                  size="small"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </template>
+            </el-popconfirm>
           </div>
         </div>
       </div>
@@ -141,8 +147,27 @@ const updateSelectAll = () => {
 
 // 移除商品
 const removeItem = (item) => {
+  cartStore.removeFromCart(item.id)
+  ElMessage({
+    type: 'success',
+    message: '商品已从购物车移除'
+  })
+}
+
+// 结算
+const handleCheckout = () => {
+  router.push('/checkout')
+}
+
+// 删除选中商品
+const removeSelected = () => {
+  if (!selectedCount.value) {
+    ElMessage.warning('请先选择要删除的商品')
+    return
+  }
+
   ElMessageBox.confirm(
-    '确定要从购物车中移除该商品吗？',
+    '确定要删除选中的商品吗？',
     '提示',
     {
       confirmButtonText: '确定',
@@ -150,14 +175,14 @@ const removeItem = (item) => {
       type: 'warning'
     }
   ).then(() => {
-    cartStore.removeItem(item)
+    cartStore.removeSelected()
+    ElMessage({
+      type: 'success',
+      message: '已删除选中的商品'
+    })
+    // 更新全选状态
+    updateSelectAll()
   })
-}
-
-// 结算
-const handleCheckout = () => {
-  // TODO: 实现结算逻辑
-  console.log('结算', selectedCount.value, '件商品，总价：', totalPrice.value)
 }
 </script>
 

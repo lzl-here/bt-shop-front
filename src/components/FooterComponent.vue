@@ -27,9 +27,9 @@
       </div>
       <div class="footer-section">
         <h3>关注我们</h3>
-        <div class="qrcode">
-          <p>扫码关注公众号</p>
-        </div>
+        <ul>
+          <li><a href="#">扫码关注公众号</a></li>
+        </ul>
       </div>
     </div>
     <div class="footer-bottom">
@@ -42,7 +42,7 @@
 .footer {
   background-color: #fff;
   padding: 40px 0 20px;
-  margin-top: auto;
+  margin-top: 40px;
 }
 
 .footer-content {
@@ -55,8 +55,9 @@
 }
 
 .footer-section h3 {
+  font-size: 16px;
+  color: #333;
   margin-bottom: 20px;
-  font-size: 18px;
 }
 
 .footer-section ul {
@@ -69,26 +70,13 @@
 
 .footer-section ul li a {
   color: #666;
+  text-decoration: none;
+  font-size: 14px;
   transition: color 0.3s;
 }
 
 .footer-section ul li a:hover {
-  color: var(--primary-color);
-}
-
-.qrcode {
-  text-align: center;
-}
-
-.qrcode img {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 10px;
-}
-
-.qrcode p {
-  color: #666;
-  font-size: 14px;
+  color: var(--el-color-primary);
 }
 
 .footer-bottom {
@@ -96,6 +84,23 @@
   margin-top: 40px;
   padding-top: 20px;
   border-top: 1px solid #eee;
+}
+
+.footer-bottom p {
   color: #999;
+  font-size: 14px;
+}
+
+@media screen and (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+  }
 }
 </style> 

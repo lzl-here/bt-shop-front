@@ -57,6 +57,22 @@ const routes = [
         component: () => import('../views/user/Profile.vue')
       }
     ]
+  },
+  {
+    path: '/checkout',
+    name: 'Checkout',
+    component: () => import('../views/order/Checkout.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/seller',
+    name: 'SellerDashboard',
+    component: () => import('../views/seller/SellerDashboard.vue'),
+    meta: {
+      requiresAuth: true
+    }
   }
 ]
 

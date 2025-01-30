@@ -117,11 +117,11 @@ const activeTab = ref('detail')
 
 // 模拟商品数据
 const product = ref({
-  id: 1,
+  id: Number(route.params.id),
   name: 'HUAWEI Mate 60 Pro',
   price: 6999,
   description: '华为年度旗舰手机，搭载麒麟芯片，超长续航',
-  image: 'https://via.placeholder.com/500x500',
+  image: 'https://via.placeholder.com/400x400',
   images: [
     'https://via.placeholder.com/100x100',
     'https://via.placeholder.com/100x100',
@@ -150,26 +150,70 @@ const selectImage = (img) => {
 
 // 加入购物车
 const addToCart = () => {
-  cartStore.addItem({
-    ...product.value,
-    quantity: quantity.value
+  const productToAdd = {
+    id: product.value.id,
+    name: product.value.name,
+    price: product.value.price,
+    description: product.value.description,
+    image: product.value.image,
+    brandName: product.value.brandName,
+    storeName: product.value.storeName,
+    quantity: quantity.value,
+    selected: true
+  }
+  
+  cartStore.addToCart(productToAdd)
+  ElMessage({
+    type: 'success',
+    message: '成功加入购物车',
+    duration: 2000
   })
-  ElMessage.success('已添加到购物车')
 }
 
 // 立即购买
 const buyNow = () => {
-  cartStore.addItem({
-    ...product.value,
-    quantity: quantity.value
+  const orderItem = {
+    id: product.value.id,
+    name: product.value.name,
+    price: product.value.price,
+    description: product.value.description,
+    image: product.value.image,
+    brandName: product.value.brandName,
+    storeName: product.value.storeName,
+    quantity: quantity.value,
+    selected: true
+  }
+
+  localStorage.setItem('tempOrder', JSON.stringify([orderItem]))
+  
+  router.push({
+    path: '/checkout',
+    query: { from: 'buyNow' }
   })
-  router.push('/cart')
 }
 
-onMounted(() => {
-  // TODO: 根据路由参数获取商品详情
-  const productId = route.params.id
-  console.log('获取商品详情:', productId)
+// 在组件挂载时获取商品详情
+onMounted(async () => {
+  // TODO: 这里应该从后端获取商品详情
+  // 目前使用模拟数据
+  const productId = Number(route.params.id)
+  product.value = {
+    id: productId,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    description: '华为年度旗舰手机，搭载麒麟芯片，超长续航',
+    image: 'https://via.placeholder.com/400x400',
+    brandName: 'HUAWEI',
+    storeName: '华为官方旗舰店',
+    sales: 1000,
+    specs: {
+      '屏幕尺寸': '6.76英寸',
+      '分辨率': 'FHD+ 2772',
+      '刷新率': '90Hz',
+      '处理器': '麒麟芯片',
+      '电池容量': '5000mAh'
+    }
+  }
 })
 </script>
 
@@ -181,22 +225,25 @@ onMounted(() => {
 }
 
 .product-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 40px;
-  margin-bottom: 40px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .product-gallery {
-  width: 500px;
-  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .main-image {
   width: 100%;
-  height: 500px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  margin-bottom: 20px;
+  max-width: 400px;
+  height: 400px;
 }
 
 .image-list {
@@ -217,25 +264,27 @@ onMounted(() => {
 }
 
 .product-info {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .product-name {
   font-size: 24px;
-  margin-bottom: 15px;
+  color: #333;
+  margin: 0;
 }
 
 .product-desc {
-  color: #666;
   font-size: 14px;
-  margin-bottom: 20px;
+  color: #666;
+  line-height: 1.6;
 }
 
 .product-meta {
   background: #f8f8f8;
   padding: 20px;
   border-radius: 4px;
-  margin-bottom: 20px;
 }
 
 .price-section,
@@ -258,26 +307,27 @@ onMounted(() => {
 }
 
 .product-attrs {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .attr-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
 }
 
 .quantity-section {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 30px;
 }
 
 .action-buttons {
   display: flex;
   gap: 20px;
+  margin-top: 20px;
 }
 
 .detail-section {
@@ -293,19 +343,11 @@ onMounted(() => {
   padding: 20px 0;
 }
 
-@media screen and (max-width: 992px) {
+@media screen and (max-width: 768px) {
   .product-container {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
-
-  .product-gallery {
-    width: 100%;
-  }
-
-  .main-image {
-    height: auto;
-  }
-
+  
   .action-buttons {
     flex-direction: column;
   }

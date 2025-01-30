@@ -154,7 +154,7 @@ const handleAvatarSuccess = (response) => {
 
 .profile-content {
   display: flex;
-  gap: 40px;
+  gap: 150px;
   padding: 20px 0;
 }
 

@@ -1,71 +1,82 @@
 <template>
-  <header class="header">
+  <header class="nav-header">
     <div class="header-content">
-      <div class="left">
+      <!-- Logo和导航组合在一起 -->
+      <div class="left-section">
         <router-link to="/" class="logo">
-          <img src="../assets/logo.png" alt="Logo">
+          <Logo />
         </router-link>
-        <nav class="nav-links">
-          <router-link to="/">首页</router-link>
-          <router-link to="/products">全部商品</router-link>
-          <router-link to="/categories">商品分类</router-link>
-          <router-link to="/cart" class="nav-cart-link">
-            <el-badge :value="cartStore.totalItems" :hidden="!cartStore.totalItems">
-              购物车
-            </el-badge>
+
+        <nav class="main-nav">
+          <router-link to="/" class="nav-item">
+            <el-icon><HomeFilled /></el-icon>
+            首页
+          </router-link>
+          <router-link to="/products" class="nav-item">
+            <el-icon><Goods /></el-icon>
+            全部商品
+          </router-link>
+          <router-link to="/categories" class="nav-item">
+            <el-icon><Menu /></el-icon>
+            商品分类
+          </router-link>
+          <router-link v-if="userStore.isLoggedIn" to="/seller" class="nav-item">
+            <el-icon><Shop /></el-icon>
+            我的店铺
           </router-link>
         </nav>
       </div>
-      <div class="right">
-        <template v-if="userStore.isLoggedIn">
-          <el-dropdown @command="handleCommand">
-            <span class="user-dropdown">
-              <el-avatar 
-                :size="32" 
-                :src="userStore.userInfo?.avatar || '/default-avatar.png'"
-              />
-              <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">
-                  <el-icon><User /></el-icon>个人资料
-                </el-dropdown-item>
-                <el-dropdown-item command="orders">
-                  <el-icon><List /></el-icon>我的订单
-                </el-dropdown-item>
-                <el-dropdown-item divided command="logout">
-                  <el-icon><SwitchButton /></el-icon>退出登录
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <router-link to="/cart" class="cart-link">
-            <el-badge :value="cartStore.totalItems" :hidden="!cartStore.totalItems">
-              <el-icon :size="24"><ShoppingCart /></el-icon>
-            </el-badge>
-          </router-link>
-        </template>
-        <template v-else>
-          <router-link to="/login" class="login-btn">登录</router-link>
-          <router-link to="/register" class="register-btn">注册</router-link>
-        </template>
+
+      <!-- 用户操作区 -->
+      <div class="user-actions">
+        <!-- 购物车图标 -->
+        <router-link to="/cart" class="cart-link">
+          <el-badge :value="cartStore.totalItems" :hidden="!cartStore.totalItems">
+            <el-icon :size="24"><ShoppingCart /></el-icon>
+          </el-badge>
+        </router-link>
+
+        <!-- 用户登录状态 -->
+        <router-link v-if="!userStore.isLoggedIn" to="/login" class="login-btn">
+          登录
+        </router-link>
+        <router-link v-if="!userStore.isLoggedIn" to="/register" class="register-btn">
+          注册
+        </router-link>
+        <el-dropdown v-else @command="handleCommand">
+          <span class="user-info">
+            <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/default-avatar.png'" />
+            <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+              <el-dropdown-item command="orders">我的订单</el-dropdown-item>
+              <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useCartStore } from '../stores/cart'
-import { User, List, SwitchButton, ShoppingCart, Search } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { 
+  ShoppingCart, 
+  Shop, 
+  HomeFilled, 
+  Goods, 
+  Menu 
+} from '@element-plus/icons-vue'
+import Logo from './Logo.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
-const searchKeyword = ref('')
 
 const handleCommand = (command) => {
   switch (command) {
@@ -81,21 +92,12 @@ const handleCommand = (command) => {
       break
   }
 }
-
-const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    router.push({
-      path: '/products',
-      query: { keyword: searchKeyword.value }
-    })
-  }
-}
 </script>
 
 <style scoped>
-.header {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.nav-header {
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -104,58 +106,78 @@ const handleSearch = () => {
 .header-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 15px 20px;
+  height: 60px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
 }
 
-.left {
+.left-section {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 40px;  /* Logo和导航之间的间距 */
 }
 
 .logo {
   display: flex;
   align-items: center;
+  text-decoration: none;
+  color: inherit;
 }
 
-.logo img {
-  height: 50px;
-  border-radius: 8px;
-  object-fit: contain;
-  padding: 5px;
-  transition: transform 0.3s;
-}
-
-.logo img:hover {
-  transform: scale(1.05);
-}
-
-.nav-links {
+.main-nav {
   display: flex;
   gap: 30px;
 }
 
-.nav-links a {
-  color: #333;
+.nav-item {
   text-decoration: none;
+  color: #333;
   font-size: 16px;
+  transition: color 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.nav-links a:hover,
-.nav-links a.router-link-active {
+.nav-item:hover,
+.nav-item.router-link-active {
   color: var(--el-color-primary);
 }
 
-.right {
+.user-actions {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-.user-dropdown {
+.login-btn,
+.register-btn {
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.login-btn {
+  color: var(--el-color-primary);
+}
+
+.register-btn {
+  background-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.login-btn:hover {
+  background-color: var(--el-color-primary-light-9);
+}
+
+.register-btn:hover {
+  background-color: var(--el-color-primary-light-3);
+}
+
+.user-info {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -168,51 +190,24 @@ const handleSearch = () => {
 }
 
 .cart-link {
-  color: #333;
-  text-decoration: none;
   display: flex;
   align-items: center;
-}
-
-.login-btn,
-.register-btn {
-  padding: 8px 16px;
-  border-radius: 4px;
+  color: #333;
   text-decoration: none;
+  transition: color 0.3s;
 }
 
-.login-btn {
+.cart-link:hover {
   color: var(--el-color-primary);
 }
 
-.register-btn {
-  background: var(--el-color-primary);
-  color: #fff;
-}
-
-:deep(.el-dropdown-menu__item) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-cart-link {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.nav-cart-link :deep(.el-badge__content) {
-  background-color: #f56c6c;
-}
-
 @media screen and (max-width: 768px) {
-  .nav-links {
+  .main-nav {
     display: none;
   }
   
-  .username {
-    display: none;
+  .left-section {
+    gap: 0;
   }
 }
 </style> 

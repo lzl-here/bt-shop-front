@@ -50,12 +50,54 @@
             placeholder="搜索商品"
             class="search-input"
             clearable
+            @input="handleSearchInput"
+            @focus="handleFocus"
+            @blur="hideSuggestions"
           >
             <template #prefix>
               <el-icon class="search-icon"><Search /></el-icon>
             </template>
           </el-input>
           <el-button type="primary" class="search-btn" @click="handleSearch">搜索</el-button>
+
+          <!-- 搜索建议下拉框 -->
+          <div v-show="showSuggestions" class="search-suggestions">
+            <!-- 热门搜索 -->
+            <div v-if="!searchForm.keyword" class="suggestion-section">
+              <div class="section-title">热门搜索</div>
+              <div class="hot-searches">
+                <span 
+                  v-for="(item, index) in hotSearches" 
+                  :key="index"
+                  class="hot-search-item"
+                  @mousedown="selectSuggestion(item)"
+                >
+                  {{ item.text }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 搜索建议 -->
+            <div v-else-if="searchSuggestions.length" class="suggestion-section">
+              <div 
+                v-for="(item, index) in searchSuggestions"
+                :key="index"
+                class="suggestion-item"
+                @mousedown="selectSuggestion(item)"
+              >
+                <div class="suggestion-content">
+                  <span class="suggestion-text">{{ item.text }}</span>
+                  <span v-if="item.category" class="suggestion-category">{{ item.category }}</span>
+                </div>
+                <span class="suggestion-count">约{{ item.count }}个商品</span>
+              </div>
+            </div>
+
+            <!-- 无搜索结果 -->
+            <div v-else-if="searchForm.keyword" class="no-result">
+              没有找到相关商品
+            </div>
+          </div>
         </div>
       </div>
 
@@ -99,7 +141,7 @@
           <el-pagination
             v-model:current-page="currentPage"
             v-model:page-size="pageSize"
-            :page-sizes="[10, 20, 30, 40]"
+            :page-sizes="[12, 24, 36, 48]"
             :total="mockProducts.length"
             layout="total, sizes, prev, pager, next, jumper"
             @size-change="handleSizeChange"
@@ -115,13 +157,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, ArrowRight } from '@element-plus/icons-vue'
+import { debounce } from 'lodash'
 
 const route = useRoute()
 const router = useRouter()
 
 // 初始化数据
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(12)
 const currentSort = ref('comprehensive')
 const searchForm = ref({
   keyword: '',
@@ -140,7 +183,7 @@ const sortOptions = [
 
 // 品牌数据
 const brands = ref([
-  { id: 1, name: 'LILISHOP', logo: 'https://via.placeholder.com/24x24' },
+  { id: 1, name: 'BT-SHOP', logo: 'https://via.placeholder.com/24x24' },
   { id: 2, name: '马蜂窝', logo: 'https://via.placeholder.com/24x24' },
   { id: 3, name: 'HUAWEI', logo: 'https://via.placeholder.com/24x24' },
   { id: 4, name: 'Apple', logo: 'https://via.placeholder.com/24x24' }
@@ -258,6 +301,76 @@ const mockProducts = ref([
     storeId: 1,
     storeName: '华为官方旗舰店'
   },
+  {
+    id: 12,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
+  {
+    id: 13,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
+  {
+    id: 14,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
+  {
+    id: 15,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
+  {
+    id: 16,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
+  {
+    id: 17,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
+  {
+    id: 18,
+    name: 'HUAWEI Mate 60 Pro',
+    price: 6999,
+    image: 'https://via.placeholder.com/200x200',
+    brandId: 3,
+    brandName: 'HUAWEI',
+    storeId: 1,
+    storeName: '华为官方旗舰店'
+  },
   // ... 其他商品数据保持不变
 ])
 
@@ -314,6 +427,67 @@ onMounted(() => {
     searchForm.value.storeId = Number(route.query.storeId)
   }
 })
+
+const showSuggestions = ref(false)
+const searchSuggestions = ref([])
+
+// 热门搜索数据
+const hotSearches = [
+  { text: '华为手机', category: '手机数码', count: 128 },
+  { text: 'iPhone 15', category: '手机数码', count: 156 },
+  { text: '小米手环', category: '智能穿戴', count: 89 },
+  { text: '机械键盘', category: '电脑配件', count: 76 },
+  { text: '游戏本', category: '电脑办公', count: 92 },
+  { text: '蓝牙耳机', category: '耳机音响', count: 134 }
+]
+
+// 模拟搜索建议数据
+const mockSuggestions = [
+  { text: '华为手机', category: '手机数码', count: 128 },
+  { text: '华为平板', category: '平板电脑', count: 56 },
+  { text: '华为笔记本', category: '电脑办公', count: 42 },
+  { text: '华为手表', category: '智能穿戴', count: 89 },
+  { text: '华为耳机', category: '耳机音响', count: 67 },
+  { text: '华为充电器', category: '手机配件', count: 95 },
+  { text: '华为nova', category: '手机数码', count: 45 },
+  { text: '华为mate', category: '手机数码', count: 78 },
+  { text: '华为畅享', category: '手机数码', count: 34 },
+  { text: '华为智选', category: '智能家居', count: 112 },
+  { text: '华为路由器', category: '网络设备', count: 23 },
+  { text: '华为电视', category: '大家电', count: 15 }
+]
+
+// 处理搜索输入
+const handleSearchInput = debounce((val) => {
+  if (!val.trim()) {
+    searchSuggestions.value = []
+    return
+  }
+  
+  // 模拟搜索匹配
+  searchSuggestions.value = mockSuggestions.filter(item => 
+    item.text.toLowerCase().includes(val.toLowerCase())
+  )
+}, 300)
+
+// 选择搜索建议
+const selectSuggestion = (item) => {
+  searchForm.value.keyword = item.text
+  showSuggestions.value = false
+  handleSearch()
+}
+
+// 隐藏搜索建议
+const hideSuggestions = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+// 处理搜索框获得焦点
+const handleFocus = () => {
+  showSuggestions.value = true
+}
 </script>
 
 <style scoped>
@@ -486,6 +660,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   max-width: 800px;
+  position: relative;  /* 添加相对定位 */
 }
 
 .search-input {
@@ -595,5 +770,95 @@ onMounted(() => {
   .product-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  margin-top: 5px;
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.suggestion-item:hover {
+  background-color: #f5f7fa;
+}
+
+.suggestion-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.suggestion-text {
+  font-size: 14px;
+}
+
+.suggestion-category {
+  font-size: 12px;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.suggestion-count {
+  font-size: 12px;
+  color: #909399;
+}
+
+.suggestion-section {
+  padding: 10px 0;
+}
+
+.section-title {
+  padding: 0 15px;
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 10px;
+}
+
+.hot-searches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 15px;
+}
+
+.hot-search-item {
+  padding: 4px 12px;
+  background: #f5f7fa;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #606266;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.hot-search-item:hover {
+  background: #ecf5ff;
+  color: var(--el-color-primary);
+}
+
+.no-result {
+  padding: 20px;
+  text-align: center;
+  color: #909399;
+  font-size: 14px;
 }
 </style> 
