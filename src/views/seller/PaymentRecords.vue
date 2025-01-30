@@ -68,19 +68,26 @@
         <el-table-column prop="time" label="交易时间" width="180" />
         <el-table-column prop="orderId" label="订单号" width="180" />
         <el-table-column prop="transactionId" label="交易号" width="180" />
-        <el-table-column prop="amount" label="交易金额">
+        <el-table-column prop="type" label="交易类型" width="100">
           <template #default="{ row }">
-            <span :class="{ 'income': row.type === 'income', 'refund': row.type === 'refund' }">
-              {{ row.type === 'refund' ? '-' : '+' }}¥{{ row.amount.toFixed(2) }}
+            <el-tag :type="row.type === 'income' ? 'success' : 'danger'">
+              {{ row.type === 'income' ? '入账' : '出账' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="amount" label="交易金额" width="150">
+          <template #default="{ row }">
+            <span :class="{ 'income': row.type === 'income', 'expense': row.type === 'expense' }">
+              ¥{{ row.amount.toFixed(2) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态">
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="paymentMethod" label="支付方式" />
+        <el-table-column prop="paymentMethod" label="支付方式" width="100" />
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button 
@@ -162,8 +169,8 @@ const allRecords = [
     time: '2024-03-20 14:30:00',
     orderId: 'ORDER2024032001',
     transactionId: '202403201430001',
-    amount: 6999.00,
     type: 'income',
+    amount: 6999.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -171,8 +178,8 @@ const allRecords = [
     time: '2024-03-20 15:20:00',
     orderId: 'ORDER2024032002',
     transactionId: '202403201520002',
+    type: 'expense',
     amount: 1999.00,
-    type: 'refund',
     status: '已退款',
     paymentMethod: '微信支付'
   },
@@ -180,8 +187,8 @@ const allRecords = [
     time: '2024-03-20 16:30:00',
     orderId: 'ORDER2024032003',
     transactionId: '202403201630003',
-    amount: 3999.00,
     type: 'income',
+    amount: 3999.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -189,8 +196,8 @@ const allRecords = [
     time: '2024-03-20 17:20:00',
     orderId: 'ORDER2024032004',
     transactionId: '202403201720004',
-    amount: 4999.00,
     type: 'income',
+    amount: 4999.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -198,8 +205,8 @@ const allRecords = [
     time: '2024-03-20 18:10:00',
     orderId: 'ORDER2024032005',
     transactionId: '202403201810005',
-    amount: 2999.00,
     type: 'income',
+    amount: 2999.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -207,8 +214,8 @@ const allRecords = [
     time: '2024-03-20 19:00:00',
     orderId: 'ORDER2024032006',
     transactionId: '202403201900006',
-    amount: 5999.00,
     type: 'income',
+    amount: 5999.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -216,8 +223,8 @@ const allRecords = [
     time: '2024-03-20 19:30:00',
     orderId: 'ORDER2024032007',
     transactionId: '202403201930007',
+    type: 'expense',
     amount: 1599.00,
-    type: 'refund',
     status: '已退款',
     paymentMethod: '支付宝'
   },
@@ -225,8 +232,8 @@ const allRecords = [
     time: '2024-03-20 20:15:00',
     orderId: 'ORDER2024032008',
     transactionId: '202403202015008',
-    amount: 7999.00,
     type: 'income',
+    amount: 7999.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -234,8 +241,8 @@ const allRecords = [
     time: '2024-03-20 21:00:00',
     orderId: 'ORDER2024032009',
     transactionId: '202403202100009',
-    amount: 3499.00,
     type: 'income',
+    amount: 3499.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -243,8 +250,8 @@ const allRecords = [
     time: '2024-03-20 21:45:00',
     orderId: 'ORDER2024032010',
     transactionId: '202403202145010',
-    amount: 4499.00,
     type: 'income',
+    amount: 4499.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -252,8 +259,8 @@ const allRecords = [
     time: '2024-03-20 22:30:00',
     orderId: 'ORDER2024032011',
     transactionId: '202403202230011',
-    amount: 2799.00,
     type: 'income',
+    amount: 2799.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -261,8 +268,8 @@ const allRecords = [
     time: '2024-03-20 23:15:00',
     orderId: 'ORDER2024032012',
     transactionId: '202403202315012',
-    amount: 6499.00,
     type: 'income',
+    amount: 6499.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -270,8 +277,8 @@ const allRecords = [
     time: '2024-03-21 00:00:00',
     orderId: 'ORDER2024032013',
     transactionId: '202403210000013',
+    type: 'expense',
     amount: 1899.00,
-    type: 'refund',
     status: '已退款',
     paymentMethod: '支付宝'
   },
@@ -279,8 +286,8 @@ const allRecords = [
     time: '2024-03-21 00:45:00',
     orderId: 'ORDER2024032014',
     transactionId: '202403210045014',
-    amount: 8999.00,
     type: 'income',
+    amount: 8999.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -288,8 +295,8 @@ const allRecords = [
     time: '2024-03-21 01:30:00',
     orderId: 'ORDER2024032015',
     transactionId: '202403210130015',
-    amount: 3299.00,
     type: 'income',
+    amount: 3299.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -297,8 +304,8 @@ const allRecords = [
     time: '2024-03-21 02:15:00',
     orderId: 'ORDER2024032016',
     transactionId: '202403210215016',
-    amount: 4799.00,
     type: 'income',
+    amount: 4799.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -306,8 +313,8 @@ const allRecords = [
     time: '2024-03-21 03:00:00',
     orderId: 'ORDER2024032017',
     transactionId: '202403210300017',
-    amount: 2599.00,
     type: 'income',
+    amount: 2599.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -315,8 +322,8 @@ const allRecords = [
     time: '2024-03-21 03:45:00',
     orderId: 'ORDER2024032018',
     transactionId: '202403210345018',
-    amount: 5999.00,
     type: 'income',
+    amount: 5999.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -324,8 +331,8 @@ const allRecords = [
     time: '2024-03-21 04:30:00',
     orderId: 'ORDER2024032019',
     transactionId: '202403210430019',
+    type: 'expense',
     amount: 1799.00,
-    type: 'refund',
     status: '已退款',
     paymentMethod: '支付宝'
   },
@@ -333,8 +340,8 @@ const allRecords = [
     time: '2024-03-21 05:15:00',
     orderId: 'ORDER2024032020',
     transactionId: '202403210515020',
-    amount: 7499.00,
     type: 'income',
+    amount: 7499.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -342,8 +349,8 @@ const allRecords = [
     time: '2024-03-21 06:00:00',
     orderId: 'ORDER2024032021',
     transactionId: '202403210600021',
-    amount: 3799.00,
     type: 'income',
+    amount: 3799.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -351,8 +358,8 @@ const allRecords = [
     time: '2024-03-21 06:45:00',
     orderId: 'ORDER2024032022',
     transactionId: '202403210645022',
-    amount: 4299.00,
     type: 'income',
+    amount: 4299.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -360,8 +367,8 @@ const allRecords = [
     time: '2024-03-21 07:30:00',
     orderId: 'ORDER2024032023',
     transactionId: '202403210730023',
-    amount: 2899.00,
     type: 'income',
+    amount: 2899.00,
     status: '支付成功',
     paymentMethod: '支付宝'
   },
@@ -369,8 +376,8 @@ const allRecords = [
     time: '2024-03-21 08:15:00',
     orderId: 'ORDER2024032024',
     transactionId: '202403210815024',
-    amount: 6299.00,
     type: 'income',
+    amount: 6299.00,
     status: '支付成功',
     paymentMethod: '微信支付'
   },
@@ -378,8 +385,8 @@ const allRecords = [
     time: '2024-03-21 09:00:00',
     orderId: 'ORDER2024032025',
     transactionId: '202403210900025',
+    type: 'expense',
     amount: 1999.00,
-    type: 'refund',
     status: '已退款',
     paymentMethod: '支付宝'
   }
@@ -516,7 +523,7 @@ handleSearch()
   color: #67c23a;
 }
 
-.refund {
+.expense {
   color: #f56c6c;
 }
 
