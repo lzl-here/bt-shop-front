@@ -9,6 +9,7 @@ import UserTrade from '../views/user/Trade.vue'
 import UserAddress from '../views/user/Address.vue'
 import UserSecurity from '../views/user/Security.vue'
 import ProductSearch from '../views/product/ProductSearch.vue'  
+import SellerDashboard from '../views/seller/SellerDashboard.vue'
 
 const routes = [
   {
@@ -64,7 +65,7 @@ const routes = [
       {
         path: 'trades',
         name: 'UserTrades',
-        component: UserTrade
+        component: () => import('../views/user/Trade.vue')
       },
       {
         path: 'trades/:tradeId',
@@ -96,9 +97,14 @@ const routes = [
   },
   {
     path: '/seller',
-    name: 'SellerDashboard',
-    component: () => import('../views/seller/SellerDashboard.vue'),
-    meta: { requiresAuth: true }
+    component: SellerDashboard,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: 'order/:orderNumber',
+        component: () => import('../views/seller/SellerOrderDetail.vue')
+      }
+    ]
   },
   {
     path: '/payment',

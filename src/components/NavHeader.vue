@@ -77,16 +77,16 @@
         <router-link v-if="!userStore.isLoggedIn" to="/register" class="register-btn">
           注册
         </router-link>
-        <el-dropdown v-else @command="handleCommand">
+        <el-dropdown v-else trigger="click">
           <span class="user-info">
             <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/default-avatar.png'" />
             <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-              <el-dropdown-item command="orders">我的交易</el-dropdown-item>
-              <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+              <el-dropdown-item @click="handleMenuClick('profile')">个人中心</el-dropdown-item>
+              <el-dropdown-item @click="handleMenuClick('trades')">我的交易</el-dropdown-item>
+              <el-dropdown-item divided @click="handleMenuClick('logout')">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -142,12 +142,16 @@ const handleSearch = () => {
   })
 }
 
-const handleCommand = (command) => {
+// 处理菜单点击
+const handleMenuClick = (command) => {
+  console.log("Menu clicked:", command)
   switch (command) {
     case 'profile':
+      console.log("Navigating to profile")
       router.push('/user/profile')
       break
-    case 'orders':
+    case 'trades':
+      console.log("Navigating to trades")
       router.push('/user/trades')
       break
     case 'logout':

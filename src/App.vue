@@ -24,6 +24,7 @@ const isStoreSearch = computed(() => {
 
 // 处理下拉菜单命令
 const handleCommand = async (command) => {
+  console.log("Command triggered:", command)
   switch (command) {
     case 'profile':
       await router.push('/user/profile')
@@ -115,7 +116,7 @@ const handleCommand = async (command) => {
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-                <el-dropdown-item command="orders">我的交易</el-dropdown-item>
+                <el-dropdown-item command="trades">我的交易</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>

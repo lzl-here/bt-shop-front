@@ -37,222 +37,214 @@
 
       <!-- 主内容区 -->
       <el-main>
-        <!-- 概览面板 -->
-        <div v-if="activeMenu === 'overview'" class="overview-panel">
-          <el-row :gutter="20">
-            <el-col :span="6">
-              <el-card shadow="hover">
-                <template #header>
-                  <div class="card-header">
-                    <span>今日订单</span>
-                  </div>
-                </template>
-                <div class="card-value">{{ statistics.todayOrders }}</div>
-              </el-card>
-            </el-col>
-            <el-col :span="6">
-              <el-card shadow="hover">
-                <template #header>
-                  <div class="card-header">
-                    <span>今日销售额</span>
-                  </div>
-                </template>
-                <div class="card-value">¥{{ statistics.todaySales }}</div>
-              </el-card>
-            </el-col>
-            <el-col :span="6">
-              <el-card shadow="hover">
-                <template #header>
-                  <div class="card-header">
-                    <span>商品总数</span>
-                  </div>
-                </template>
-                <div class="card-value">{{ statistics.totalProducts }}</div>
-              </el-card>
-            </el-col>
-            <el-col :span="6">
-              <el-card shadow="hover">
-                <template #header>
-                  <div class="card-header">
-                    <span>待处理订单</span>
-                  </div>
-                </template>
-                <div class="card-value">{{ statistics.pendingOrders }}</div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </div>
-
-        <!-- 商品管理 -->
-        <div v-if="activeMenu === 'products'" class="products-panel">
-          <div class="panel-header">
-            <el-button type="primary" @click="addProduct">
-              <el-icon><Plus /></el-icon>添加商品
-            </el-button>
+        <!-- 添加路由视图以显示子路由组件 -->
+        <router-view v-if="$route.path.includes('/order/')" />
+        
+        <!-- 其他面板内容，当不是订单详情路由时显示 -->
+        <template v-else>
+          <!-- 概览面板 -->
+          <div v-if="activeMenu === 'overview'" class="overview-panel">
+            <el-row :gutter="20">
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <template #header>
+                    <div class="card-header">
+                      <span>今日订单</span>
+                    </div>
+                  </template>
+                  <div class="card-value">{{ statistics.todayOrders }}</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <template #header>
+                    <div class="card-header">
+                      <span>今日销售额</span>
+                    </div>
+                  </template>
+                  <div class="card-value">¥{{ statistics.todaySales }}</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <template #header>
+                    <div class="card-header">
+                      <span>商品总数</span>
+                    </div>
+                  </template>
+                  <div class="card-value">{{ statistics.totalProducts }}</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <template #header>
+                    <div class="card-header">
+                      <span>待处理订单</span>
+                    </div>
+                  </template>
+                  <div class="card-value">{{ statistics.pendingOrders }}</div>
+                </el-card>
+              </el-col>
+            </el-row>
           </div>
-          <el-table :data="currentPageProducts" style="width: 100%">
-            <el-table-column prop="id" label="商品ID" width="80" />
-            <el-table-column label="商品信息">
-              <template #default="{ row }">
-                <div class="product-info">
-                  <el-image :src="row.image" :preview-src-list="[row.image]" class="product-image" />
-                  <div class="product-detail">
-                    <div class="product-name">{{ row.name }}</div>
-                    <div class="product-price">¥{{ row.price }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="stock" label="库存" width="100" />
-            <el-table-column prop="sales" label="销量" width="100" />
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.status === '在售' ? 'success' : 'info'">
-                  {{ row.status }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="{ row }">
-                <el-button-group>
-                  <el-button size="small" @click="editProduct(row)">编辑</el-button>
-                  <el-button size="small" type="danger" @click="deleteProduct(row)">删除</el-button>
-                </el-button-group>
-              </template>
-            </el-table-column>
-          </el-table>
 
-          <!-- 添加分页组件 -->
-          <div class="pagination-container">
-            <div class="pagination-left">
-              Total {{ totalProducts }}
-              <el-select v-model="productPageSize" class="page-size-select">
-                <el-option
-                  v-for="size in [10, 20, 30, 50]"
-                  :key="size"
-                  :label="`${size}/page`"
-                  :value="size"
+          <!-- 商品管理 -->
+          <div v-if="activeMenu === 'products'" class="products-panel">
+            <div class="panel-header">
+              <el-button type="primary" @click="addProduct">
+                <el-icon><Plus /></el-icon>添加商品
+              </el-button>
+            </div>
+            <el-table :data="currentPageProducts" style="width: 100%">
+              <el-table-column prop="id" label="商品ID" width="80" />
+              <el-table-column label="商品信息">
+                <template #default="{ row }">
+                  <div class="product-info">
+                    <el-image :src="row.image" :preview-src-list="[row.image]" class="product-image" />
+                    <div class="product-detail">
+                      <div class="product-name">{{ row.name }}</div>
+                      <div class="product-price">¥{{ row.price }}</div>
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="stock" label="库存" width="100" />
+              <el-table-column prop="sales" label="销量" width="100" />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === '在售' ? 'success' : 'info'">
+                    {{ row.status }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="200">
+                <template #default="{ row }">
+                  <el-button-group>
+                    <el-button size="small" @click="editProduct(row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteProduct(row)">删除</el-button>
+                  </el-button-group>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <!-- 添加分页组件 -->
+            <div class="pagination-container">
+              <div class="pagination-left">
+                Total {{ totalProducts }}
+                <el-select v-model="productPageSize" class="page-size-select">
+                  <el-option
+                    v-for="size in [10, 20, 30, 50]"
+                    :key="size"
+                    :label="`${size}/page`"
+                    :value="size"
+                  />
+                </el-select>
+              </div>
+              <div class="pagination-center">
+                <el-pagination
+                  v-model:current-page="productCurrentPage"
+                  :page-size="productPageSize"
+                  :total="totalProducts"
+                  layout="prev, pager, next"
+                  @current-change="handleProductPageChange"
                 />
-              </el-select>
-            </div>
-            <div class="pagination-center">
-              <el-pagination
-                v-model:current-page="productCurrentPage"
-                :page-size="productPageSize"
-                :total="totalProducts"
-                layout="prev, pager, next"
-                @current-change="handleProductPageChange"
-              />
-            </div>
-            <div class="pagination-right">
-              Go to
-              <el-input
-                v-model="productGoToPage"
-                class="go-to-input"
-                @keyup.enter="handleProductGoToPage"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- 支付流水面板 -->
-        <div v-if="activeMenu === 'payment-records'" class="payment-records-panel">
-          <PaymentRecords />
-        </div>
-
-        <!-- 订单管理面板 -->
-        <div v-if="activeMenu === 'orders'" class="orders-panel">
-          <el-table :data="currentPageOrders" style="width: 100%">
-            <el-table-column prop="orderNumber" label="订单号" width="180" />
-            <el-table-column prop="orderTime" label="下单时间" width="180" />
-            <el-table-column prop="customerName" label="买家" width="120" />
-            <el-table-column prop="total" label="订单金额">
-              <template #default="{ row }">
-                ¥{{ row.total.toFixed(2) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="paymentMethod" label="支付方式" width="120" />
-            <el-table-column prop="status" label="订单状态" width="120">
-              <template #default="{ row }">
-                <el-tag :type="getStatusType(row.status)">
-                  {{ row.status }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="{ row }">
-                <el-button 
-                  v-if="['已支付', '待发货', '部分发货'].includes(row.status)"
-                  type="primary" 
-                  size="small"
-                  @click="handleOrderAction(row, 'ship')"
-                >
-                  发货
-                </el-button>
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  link
-                  @click="handleOrderAction(row, 'detail')"
-                >
-                  查看详情
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- 添加分页组件 -->
-          <div class="pagination-container">
-            <div class="pagination-left">
-              Total {{ totalOrders }}
-              <el-select v-model="pageSize" class="page-size-select">
-                <el-option
-                  v-for="size in [10, 20, 30, 50]"
-                  :key="size"
-                  :label="`${size}/page`"
-                  :value="size"
+              </div>
+              <div class="pagination-right">
+                Go to
+                <el-input
+                  v-model="productGoToPage"
+                  class="go-to-input"
+                  @keyup.enter="handleProductGoToPage"
                 />
-              </el-select>
-            </div>
-            <div class="pagination-center">
-              <el-pagination
-                v-model:current-page="currentPage"
-                :page-size="pageSize"
-                :total="totalOrders"
-                layout="prev, pager, next"
-                @current-change="handleCurrentChange"
-              />
-            </div>
-            <div class="pagination-right">
-              Go to
-              <el-input
-                v-model="goToPage"
-                class="go-to-input"
-                @keyup.enter="handleGoToPage"
-              />
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 店铺设置面板 -->
-        <div v-if="activeMenu === 'settings'" class="settings-panel">
-          <StoreSettings />
-        </div>
+          <!-- 支付流水面板 -->
+          <div v-if="activeMenu === 'payment-records'" class="payment-records-panel">
+            <PaymentRecords />
+          </div>
 
-        <!-- 用户下拉菜单 -->
-        <el-dropdown @command="handleCommand">
-          <span class="user-info">
-            <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/default-avatar.png'" />
-            <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-              <el-dropdown-item command="orders">我的交易</el-dropdown-item>
-              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          <!-- 订单管理面板 -->
+          <div v-if="activeMenu === 'orders'" class="orders-panel">
+            <el-table :data="currentPageOrders" style="width: 100%">
+              <el-table-column prop="orderNumber" label="订单号" width="180" />
+              <el-table-column prop="orderTime" label="下单时间" width="180" />
+              <el-table-column prop="customerName" label="买家" width="120" />
+              <el-table-column prop="total" label="订单金额">
+                <template #default="{ row }">
+                  ¥{{ row.total.toFixed(2) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="paymentMethod" label="支付方式" width="120" />
+              <el-table-column prop="status" label="订单状态" width="120">
+                <template #default="{ row }">
+                  <el-tag :type="getStatusType(row.status)">
+                    {{ row.status }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="200">
+                <template #default="{ row }">
+                  <el-button 
+                    v-if="['已支付', '待发货', '部分发货'].includes(row.status)"
+                    type="primary" 
+                    size="small"
+                    @click="handleOrderAction(row, 'ship')"
+                  >
+                    发货
+                  </el-button>
+                  <el-button 
+                    type="primary" 
+                    size="small"
+                    link
+                    @click="handleOrderAction(row, 'detail')"
+                  >
+                    查看详情
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <!-- 添加分页组件 -->
+            <div class="pagination-container">
+              <div class="pagination-left">
+                Total {{ totalOrders }}
+                <el-select v-model="pageSize" class="page-size-select">
+                  <el-option
+                    v-for="size in [10, 20, 30, 50]"
+                    :key="size"
+                    :label="`${size}/page`"
+                    :value="size"
+                  />
+                </el-select>
+              </div>
+              <div class="pagination-center">
+                <el-pagination
+                  v-model:current-page="currentPage"
+                  :page-size="pageSize"
+                  :total="totalOrders"
+                  layout="prev, pager, next"
+                  @current-change="handleCurrentChange"
+                />
+              </div>
+              <div class="pagination-right">
+                Go to
+                <el-input
+                  v-model="goToPage"
+                  class="go-to-input"
+                  @keyup.enter="handleGoToPage"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 店铺设置面板 -->
+          <div v-if="activeMenu === 'settings'" class="settings-panel">
+            <StoreSettings />
+          </div>
+        </template>
+
       </el-main>
     </el-container>
   </div>
@@ -491,37 +483,16 @@ const handleOrderAction = (order, action) => {
       })
       break
     case 'detail':
-      // TODO: 查看订单详情
-      console.log('查看订单详情', order)
-      break
-  }
-}
-
-// 处理下拉菜单命令
-const handleCommand = (command) => {
-  switch (command) {
-    case 'profile':
-      router.push('/user/profile')
-      break
-    case 'orders':
-      router.push('/user/trades')
-      break
-    case 'logout':
-      ElMessageBox.confirm(
-        '确定要退出登录吗？',
-        '提示',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
+      router.push({
+        path: `/seller/order/${order.orderNumber}`,
+        query: { 
+          from: 'seller-dashboard'  // 添加来源标记
         }
-      ).then(() => {
-        userStore.logout()
-        router.push('/login')
       })
       break
   }
 }
+
 </script>
 
 <style scoped>
