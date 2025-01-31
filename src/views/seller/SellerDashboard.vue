@@ -30,7 +30,7 @@
           </el-menu-item>
           <el-menu-item index="payment-records">
             <el-icon><Money /></el-icon>
-            <span>支付流水</span>
+            <span>结算单</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -160,9 +160,9 @@
             </div>
           </div>
 
-          <!-- 支付流水面板 -->
+          <!-- 结算单面板 -->
           <div v-if="activeMenu === 'payment-records'" class="payment-records-panel">
-            <PaymentRecords />
+            <BillRecords />
           </div>
 
           <!-- 订单管理面板 -->
@@ -254,7 +254,7 @@
 import { ref, computed, watch } from 'vue'
 import { DataLine, Goods, List, Setting, Plus, Money } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PaymentRecords from './PaymentRecords.vue'
+import BillRecords from './BillRecords.vue'
 import StoreSettings from './StoreSettings.vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'

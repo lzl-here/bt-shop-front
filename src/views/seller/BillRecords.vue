@@ -19,10 +19,10 @@
 
     <div class="records-table">
       <div class="table-header">
-        <div class="col-trade-no">交易号</div>
-        <div class="col-order">订单号</div>
+        <div class="col-trade-no">结算单号</div>
         <div class="col-amount">金额</div>
-        <div class="col-time">支付时间</div>
+        <div class="col-start-time">开始时间</div>
+        <div class="col-end-time">结束时间</div>
         <div class="col-method">支付方式</div>
         <div class="col-status">状态</div>
         <div class="col-action">操作</div>
@@ -31,9 +31,9 @@
       <div class="table-body">
         <div v-for="record in filteredRecords" :key="record.id" class="table-row">
           <div class="col-trade-no">{{ record.tradeNo }}</div>
-          <div class="col-order">{{ record.orderNo }}</div>
           <div class="col-amount">¥{{ record.amount.toFixed(2) }}</div>
-          <div class="col-time">{{ record.paymentTime }}</div>
+          <div class="col-start-time">{{ record.startTime }}</div>
+          <div class="col-end-time">{{ record.endTime }}</div>
           <div class="col-method">{{ record.paymentMethod }}</div>
           <div class="col-status">
             <span :class="['status-tag', getStatusTag(record.status).type]">
@@ -46,7 +46,13 @@
               class="confirm-btn"
               @click="confirmPayment(record)"
             >
-              确认收款
+              确认
+            </button>
+            <button 
+              class="detail-btn"
+              @click="viewDetail(record)"
+            >
+              查看
             </button>
           </div>
         </div>
@@ -72,11 +78,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 const status = ref('pending')
 const currentPage = ref(1)
 const pageSize = ref(12) // 默认每页12条
 const total = ref(0)
+const router = useRouter()
 
 // 订单状态枚举
 const OrderStatus = {
@@ -93,15 +101,14 @@ const ItemStatus = {
   CANCELLED: 'cancelled'               // 已取消
 }
 
-// 支付流水
+// 生成结算单数据
 const records = ref(Array.from({ length: 37 }, (_, index) => {
   const id = index + 1
-  const tradeNo = `2024032010${id.toString().padStart(4, '0')}`
-  const orderNo = `P202403200${id.toString().padStart(3, '0')}`
-  const hour = Math.floor(Math.random() * 24)
-  const minute = Math.floor(Math.random() * 60)
-  const second = Math.floor(Math.random() * 60)
-  const paymentTime = `2024-03-20 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}`
+  const tradeNo = `JS${String(id).padStart(6, '0')}`
+  
+  // 生成结算时间区间
+  const startTime = '2024-03-01'
+  const endTime = '2024-03-20'
   
   // 随机生成金额
   const amount = [6999.00, 7999.00, 8999.00, 13998.00][Math.floor(Math.random() * 4)]
@@ -115,9 +122,9 @@ const records = ref(Array.from({ length: 37 }, (_, index) => {
   return {
     id,
     tradeNo,
-    orderNo,
     amount,
-    paymentTime,
+    startTime,
+    endTime,
     paymentMethod,
     status
   }
@@ -172,7 +179,7 @@ const fetchRecords = async () => {
 const confirmPayment = async (record) => {
   try {
     await ElMessageBox.confirm(
-      `确认收到订单 ${record.orderNo} 的付款 ¥${record.amount.toFixed(2)} 吗？`,
+      `确认收到订单 ${record.tradeNo} 的付款 ¥${record.amount.toFixed(2)} 吗？`,
       '确认收款',
       {
         confirmButtonText: '确认',
@@ -199,6 +206,11 @@ const handleSizeChange = (val) => {
 const handleCurrentChange = (val) => {
   currentPage.value = val
   fetchRecords()
+}
+
+// 查看详情
+const viewDetail = (record) => {
+  router.push(`/seller/bill/${record.tradeNo}`)
 }
 </script>
 
@@ -253,13 +265,13 @@ const handleCurrentChange = (val) => {
   background-color: #f5f7fa;
 }
 
-.col-trade-no { width: 18%; padding: 0 15px; }
-.col-order { width: 17%; padding: 0 15px; }
+.col-trade-no { width: 15%; padding: 0 15px; }
 .col-amount { width: 15%; padding: 0 15px; color: #f56c6c; }
-.col-time { width: 15%; padding: 0 15px; }
+.col-start-time { width: 15%; padding: 0 15px; }
+.col-end-time { width: 15%; padding: 0 15px; }
 .col-method { width: 15%; padding: 0 15px; }
 .col-status { width: 10%; padding: 0 15px; }
-.col-action { width: 10%; padding: 0 15px; }
+.col-action { width: 15%; padding: 0 15px; display: flex; gap: 8px; }
 
 .status-tag {
   display: inline-block;
@@ -279,19 +291,43 @@ const handleCurrentChange = (val) => {
 }
 
 .confirm-btn {
-  padding: 2px 8px;
+  padding: 0 6px;
   background-color: #409eff;
   color: white;
   border: none;
   border-radius: 3px;
   cursor: pointer;
-  font-size: 12px;
-  line-height: 1.5;
-  min-height: 24px;
+  font-size: 11px;
+  line-height: 1.4;
+  min-height: 18px;
+  height: 18px;
+  white-space: nowrap;
+  min-width: 36px;
 }
 
 .confirm-btn:hover {
   background-color: #66b1ff;
+}
+
+.detail-btn {
+  padding: 0 6px;
+  background-color: #fff;
+  color: #409eff;
+  border: 1px solid #409eff;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.4;
+  min-height: 18px;
+  height: 18px;
+  white-space: nowrap;
+  min-width: 36px;
+}
+
+.detail-btn:hover {
+  color: #66b1ff;
+  border-color: #66b1ff;
+  background-color: #ecf5ff;
 }
 
 .pagination {

@@ -4,7 +4,8 @@
       <!-- Logo和导航组合在一起 -->
       <div class="left-section">
         <router-link to="/" class="logo">
-          <Logo />
+          <img src="../assets/logo.png" alt="bt-shop">
+          <span class="logo-text">bt-shop</span>
         </router-link>
 
         <nav class="main-nav">
@@ -108,7 +109,7 @@ import {
   Menu,
   Search 
 } from '@element-plus/icons-vue'
-import Logo from './Logo.vue'
+import logoUrl from '../assets/logo.png'  // 导入logo
 
 const router = useRouter()
 const route = useRoute()
@@ -190,8 +191,19 @@ const handleMenuClick = (command) => {
 .logo {
   display: flex;
   align-items: center;
+  gap: 8px;
   text-decoration: none;
-  color: inherit;
+}
+
+.logo img {
+  width: 32px;
+  height: 32px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #409eff;
 }
 
 .main-nav {

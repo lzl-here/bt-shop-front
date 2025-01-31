@@ -127,6 +127,15 @@ const routes = [
     path: '/store/:id',
     name: 'StoreDetail',
     component: () => import('../views/store/StoreDetail.vue')
+  },
+  {
+    path: '/seller/bill/:billNo',
+    name: 'BillDetail',
+    component: () => import('../views/seller/BillDetail.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresStore: true
+    }
   }
 ]
 
