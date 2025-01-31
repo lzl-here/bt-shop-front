@@ -18,48 +18,67 @@
     </div>
 
     <div class="records-table">
-      <div class="table-header">
-        <div class="col-trade-no">结算单号</div>
-        <div class="col-amount">金额</div>
-        <div class="col-start-time">开始时间</div>
-        <div class="col-end-time">结束时间</div>
-        <div class="col-method">支付方式</div>
-        <div class="col-status">状态</div>
-        <div class="col-action">操作</div>
-      </div>
-
-      <div class="table-body">
-        <div v-for="record in filteredRecords" :key="record.id" class="table-row">
-          <div class="col-trade-no">{{ record.tradeNo }}</div>
-          <div class="col-amount">¥{{ record.amount.toFixed(2) }}</div>
-          <div class="col-start-time">{{ record.startTime }}</div>
-          <div class="col-end-time">{{ record.endTime }}</div>
-          <div class="col-method">{{ record.paymentMethod }}</div>
-          <div class="col-status">
-            <span :class="['status-tag', getStatusTag(record.status).type]">
-              {{ getStatusTag(record.status).text }}
-            </span>
-          </div>
-          <div class="col-action">
-            <button 
-              v-if="record.status === 'pending_confirm'"
-              class="confirm-btn"
-              @click="confirmPayment(record)"
+      <el-table 
+        :data="currentPageRecords" 
+        style="width: 100%"
+        :header-cell-style="{
+          background: '#F5F7FA',
+          color: '#606266',
+          fontWeight: 500,
+          fontSize: '12px',
+          height: '36px',
+          padding: '4px 12px'
+        }"
+        :cell-style="{
+          fontSize: '12px',
+          padding: '8px 12px'
+        }"
+      >
+        <el-table-column 
+          v-for="column in columns" 
+          :key="column.prop"
+          :prop="column.prop"
+          :label="column.label"
+          :width="column.width"
+          :fixed="column.fixed"
+        >
+          <template #default="{ row }" v-if="column.prop === 'amount'">
+            <span class="amount">¥{{ row[column.prop].toFixed(2) }}</span>
+          </template>
+          <template #default="{ row }" v-else-if="column.prop === 'status'">
+            <el-tag 
+              :type="getStatusType(row.status)"
+              size="small"
+              effect="light"
             >
-              确认
-            </button>
-            <button 
-              class="detail-btn"
-              @click="viewDetail(record)"
-            >
-              查看
-            </button>
-          </div>
-        </div>
-      </div>
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+          <template #default="{ row }" v-else-if="!column.prop">
+            <div class="action-buttons">
+              <el-button 
+                v-if="row.status === 'pending_confirm'"
+                type="primary" 
+                size="small"
+                @click="confirmPayment(row)"
+              >
+                确认
+              </el-button>
+              <el-button 
+                type="primary" 
+                link
+                size="small"
+                @click="viewDetail(row)"
+              >
+                查看
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
-    <div class="pagination">
+    <div class="pagination-container">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
@@ -130,22 +149,23 @@ const records = ref(Array.from({ length: 37 }, (_, index) => {
   }
 }))
 
-// 修改状态显示
-const getStatusTag = (status) => {
-  const statusMap = {
-    // 订单状态
-    pending_payment: { text: '待付款', type: 'info' },
-    pending_confirm: { text: '待确认', type: 'warning' },
-    pending_ship: { text: '待发货', type: 'primary' },
-    completed: { text: '已完成', type: 'success' },
-    cancelled: { text: '已取消', type: 'danger' },
-    // 商品状态
+// 定义表格列
+const columns = [
+  { prop: 'tradeNo', label: '结算单号', width: '170' },
+  { prop: 'amount', label: '金额', width: '120' },
+  { prop: 'startTime', label: '开始时间', width: '150' },
+  { prop: 'endTime', label: '结束时间', width: '150' },
+  { prop: 'paymentMethod', label: '支付方式', width: '100' },
+  { prop: 'status', label: '状态', width: '90' },
+  { 
+    label: '操作', 
+    width: '140',
+    fixed: 'right'
   }
-  return statusMap[status] || { text: '未知状态', type: 'info' }
-}
+]
 
-// 根据状态过滤记录
-const filteredRecords = computed(() => {
+// 计算当前页的记录
+const currentPageRecords = computed(() => {
   const filtered = records.value.filter(record => 
     status.value === 'pending' ? record.status === 'pending_confirm' : record.status === 'completed'
   )
@@ -158,6 +178,24 @@ const filteredRecords = computed(() => {
   const end = start + pageSize.value
   return filtered.slice(start, end)
 })
+
+// 获取状态类型
+const getStatusType = (status) => {
+  const statusMap = {
+    pending_confirm: 'warning',
+    completed: 'success'
+  }
+  return statusMap[status] || 'info'
+}
+
+// 获取状态文本
+const getStatusText = (status) => {
+  const statusMap = {
+    pending_confirm: '待确认',
+    completed: '已完成'
+  }
+  return statusMap[status] || '未知状态'
+}
 
 // 处理状态切换
 const handleStatusChange = (val) => {
@@ -395,5 +433,109 @@ const viewDetail = (record) => {
 .pagination :deep(.el-input__inner) {
   height: 32px;
   line-height: 32px;
+}
+
+.bill-records {
+  background: #fff;
+  padding: 20px;
+  border-radius: 4px;
+}
+
+:deep(.el-table) {
+  --el-table-border-color: #ebeef5;
+  --el-table-header-bg-color: #F5F7FA;
+  border-radius: 4px;
+  border: 1px solid var(--el-table-border-color);
+}
+
+:deep(.el-table::before) {
+  display: none;
+}
+
+:deep(.el-table__inner-wrapper::before) {
+  display: none;
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: var(--el-table-header-bg-color);
+}
+
+:deep(.el-table .cell) {
+  padding: 0;
+  white-space: nowrap;
+}
+
+:deep(.el-table__cell) {
+  padding: 4px 0;
+}
+
+:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
+  background-color: #f5f7fa;
+}
+
+.amount {
+  color: #f56c6c;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:deep(.el-tag) {
+  border: none;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 11px;
+}
+
+:deep(.el-tag--success) {
+  background-color: #f0f9eb;
+  color: #67c23a;
+}
+
+:deep(.el-tag--warning) {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+}
+
+:deep(.el-tag--primary) {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+:deep(.el-tag--info) {
+  background-color: #f4f4f5;
+  color: #909399;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+:deep(.el-pagination) {
+  padding: 0;
+  font-weight: normal;
+}
+
+:deep(.el-pagination button) {
+  background-color: transparent;
+}
+
+:deep(.el-pagination .el-pager li) {
+  background-color: transparent;
+  border: none;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  color: var(--el-color-primary);
+  font-weight: bold;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
 }
 </style> 

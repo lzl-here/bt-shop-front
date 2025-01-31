@@ -32,7 +32,7 @@
           </el-menu-item>
           <el-menu-item index="overview">
             <el-icon><DataLine /></el-icon>
-            <span>概览</span>
+            <span>店铺概览</span>
           </el-menu-item>
           <el-menu-item index="products">
             <el-icon><Goods /></el-icon>
@@ -40,11 +40,11 @@
           </el-menu-item>
           <el-menu-item index="orders">
             <el-icon><List /></el-icon>
-            <span>订单管理</span>
+            <span>订单列表</span>
           </el-menu-item>
           <el-menu-item index="payment-records">
             <el-icon><Money /></el-icon>
-            <span>结算单</span>
+            <span>结算列表</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
