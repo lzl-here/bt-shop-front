@@ -110,7 +110,7 @@ const routes = [
   {
     path: '/payment',
     name: 'Payment',
-    component: () => import('../views/trades/Payment.vue'),
+    component: () => import('../views/payment/PaymentPage.vue'),
     meta: { requiresAuth: true }
   }
   ,
