@@ -17,67 +17,47 @@
       </div>
     </div>
 
-    <!-- 三栏布局容器 -->
+    <!-- 分类导航 -->
     <div class="content-container">
       <div class="main-layout">
-        <!-- 左侧商品分类 -->
-        <div class="left-sidebar">
-          <h2 class="sidebar-title">商品分类</h2>
+        <!-- 左侧分类导航 -->
+        <div class="category-nav">
           <div class="category-list">
-            <div class="category-item">
-              <router-link to="/products?category=digital">
-                数码办公 / 手机通讯 / 摄影摄像
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=appliance">
-                家用电器 / 大家电 / 生活电器
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=clothing">
-                服装鞋帽 / 女装 / 男装
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=food">
-                食品饮料 / 进口食品 / 地方特产
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=bags">
-                礼品箱包 / 潮流女包 / 时尚男包
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=beauty">
-                个护化妆 / 面部护理 / 身体护理
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=kitchen">
-                厨房餐饮 / 烹饪锅具 / 刀剪菜板
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=furniture">
-                家居家装 / 家纺 / 灯具
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=auto">
-                汽车用品 / 电子电器 / 系统养护
-              </router-link>
-            </div>
-            <div class="category-item">
-              <router-link to="/products?category=toys">
-                玩具乐器 / 适用年龄 / 遥控/电动
-              </router-link>
+            <!-- 一级分类 -->
+            <div 
+              v-for="category in categories" 
+              :key="category.id"
+              class="category-item"
+              @mouseenter="handleMouseEnter(category)"
+              @mouseleave="handleMouseLeave"
+            >
+              <div class="category-title">
+                <el-icon><Folder /></el-icon>
+                <span>{{ category.name }}</span>
+                <el-icon class="arrow"><ArrowRight /></el-icon>
+              </div>
+
+              <!-- 二级和三级分类浮层 -->
+              <div v-show="activeCategory === category.id" class="sub-categories">
+                <div v-for="subCat in category.children" :key="subCat.id" class="sub-category">
+                  <div class="sub-category-title">{{ subCat.name }}</div>
+                  <div class="third-categories">
+                    <router-link 
+                      v-for="thirdCat in subCat.children" 
+                      :key="thirdCat.id"
+                      :to="`/products?categoryId=${thirdCat.id}`"
+                      class="third-category"
+                    >
+                      {{ thirdCat.name }}
+                    </router-link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 中间营销信息 -->
+        <!-- 中间内容区域 -->
         <div class="main-content">
           <!-- 营销活动入口 -->
           <div class="promotion-links">
@@ -102,43 +82,48 @@
           </div>
 
           <!-- 热门商品部分 -->
-          <div class="section hot-products-section">
+          <div class="hot-products">
             <div class="section-header">
               <h2 class="section-title">热门商品</h2>
               <router-link to="/products" class="view-more">
-                更多商品 <el-icon><ArrowRight /></el-icon>
+                更多商品
+                <el-icon><ArrowRight /></el-icon>
               </router-link>
             </div>
+
             <div class="product-grid">
-              <el-card 
+              <div 
                 v-for="product in hotProducts" 
-                :key="product.id"
+                :key="product.id" 
                 class="product-card"
-                :body-style="{ padding: '0px' }"
-                shadow="hover"
                 @click="viewProduct(product.id)"
               >
-                <div class="product-image-wrapper">
-                  <img :src="product.image" :alt="product.name" class="product-image">
-                  <div class="product-tags" v-if="product.tags">
-                    <el-tag v-for="tag in product.tags" :key="tag" size="small" effect="dark">
+                <div class="product-image">
+                  <img :src="product.image" :alt="product.name">
+                  <div class="product-tags">
+                    <el-tag 
+                      v-for="tag in product.tags" 
+                      :key="tag"
+                      :type="tag === '新品' ? 'success' : 'danger'"
+                      size="small"
+                    >
                       {{ tag }}
                     </el-tag>
                   </div>
                 </div>
                 <div class="product-info">
-                  <div class="product-name">{{ product.name }}</div>
-                  <div class="product-meta">
-                    <div class="product-price">¥{{ product.price }}</div>
-                    <div class="product-sales">月销 {{ product.sales }}+</div>
+                  <h3 class="product-name">{{ product.name }}</h3>
+                  <div class="product-price">
+                    <span class="price">¥{{ product.price }}</span>
+                    <span class="sales">月销 {{ product.sales }}+</span>
                   </div>
                 </div>
-              </el-card>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 右侧个人信息 -->
+        <!-- 右侧边栏 -->
         <div class="right-sidebar">
           <!-- 用户信息 -->
           <div class="user-panel">
@@ -214,7 +199,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { ArrowRight, ShoppingBag, Ticket, Shop, Star, ShoppingCart, Timer, QuestionFilled, ChatDotRound, Location, Bell } from '@element-plus/icons-vue'
+import { ArrowRight, ShoppingBag, Ticket, Shop, Star, ShoppingCart, Timer, QuestionFilled, ChatDotRound, Location, Bell, Folder } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -266,6 +251,200 @@ const hotProducts = ref([
 
 const viewProduct = (productId) => {
   router.push(`/products/${productId}`)
+}
+
+// 分类数据
+const categories = ref([
+  {
+    id: 1,
+    name: '数码办公',
+    children: [
+      {
+        id: 11,
+        name: '手机',
+        children: [
+          { id: 111, name: '华为' },
+          { id: 112, name: '苹果' },
+          { id: 113, name: '小米' },
+          { id: 114, name: 'OPPO' },
+          { id: 115, name: 'vivo' }
+        ]
+      },
+      {
+        id: 12,
+        name: '电脑',
+        children: [
+          { id: 121, name: '笔记本' },
+          { id: 122, name: '台式机' },
+          { id: 123, name: '平板电脑' },
+          { id: 124, name: '一体机' }
+        ]
+      },
+      {
+        id: 13,
+        name: '办公设备',
+        children: [
+          { id: 131, name: '打印机' },
+          { id: 132, name: '投影仪' },
+          { id: 133, name: '扫描仪' },
+          { id: 134, name: '复印机' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2,
+    name: '家用电器',
+    children: [
+      {
+        id: 21,
+        name: '大家电',
+        children: [
+          { id: 211, name: '电视' },
+          { id: 212, name: '空调' },
+          { id: 213, name: '冰箱' },
+          { id: 214, name: '洗衣机' }
+        ]
+      },
+      {
+        id: 22,
+        name: '厨房电器',
+        children: [
+          { id: 221, name: '微波炉' },
+          { id: 222, name: '电饭煲' },
+          { id: 223, name: '电磁炉' },
+          { id: 224, name: '烤箱' }
+        ]
+      },
+      {
+        id: 23,
+        name: '生活电器',
+        children: [
+          { id: 231, name: '吸尘器' },
+          { id: 232, name: '电风扇' },
+          { id: 233, name: '加湿器' },
+          { id: 234, name: '净化器' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: '服装鞋帽',
+    children: [
+      {
+        id: 31,
+        name: '女装',
+        children: [
+          { id: 311, name: '连衣裙' },
+          { id: 312, name: 'T恤' },
+          { id: 313, name: '衬衫' },
+          { id: 314, name: '外套' }
+        ]
+      },
+      {
+        id: 32,
+        name: '男装',
+        children: [
+          { id: 321, name: '夹克' },
+          { id: 322, name: '西装' },
+          { id: 323, name: '休闲裤' },
+          { id: 324, name: '运动装' }
+        ]
+      },
+      {
+        id: 33,
+        name: '鞋靴',
+        children: [
+          { id: 331, name: '运动鞋' },
+          { id: 332, name: '皮鞋' },
+          { id: 333, name: '靴子' },
+          { id: 334, name: '凉鞋' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 4,
+    name: '美妆护肤',
+    children: [
+      {
+        id: 41,
+        name: '面部护理',
+        children: [
+          { id: 411, name: '面霜' },
+          { id: 412, name: '精华' },
+          { id: 413, name: '面膜' },
+          { id: 414, name: '洁面' }
+        ]
+      },
+      {
+        id: 42,
+        name: '彩妆',
+        children: [
+          { id: 421, name: '口红' },
+          { id: 422, name: '粉底' },
+          { id: 423, name: '眼影' },
+          { id: 424, name: '腮红' }
+        ]
+      },
+      {
+        id: 43,
+        name: '香水',
+        children: [
+          { id: 431, name: '女士香水' },
+          { id: 432, name: '男士香水' },
+          { id: 433, name: '中性香水' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 5,
+    name: '食品生鲜',
+    children: [
+      {
+        id: 51,
+        name: '生鲜',
+        children: [
+          { id: 511, name: '水果' },
+          { id: 512, name: '蔬菜' },
+          { id: 513, name: '肉类' },
+          { id: 514, name: '海鲜' }
+        ]
+      },
+      {
+        id: 52,
+        name: '零食',
+        children: [
+          { id: 521, name: '饼干' },
+          { id: 522, name: '糖果' },
+          { id: 523, name: '坚果' },
+          { id: 524, name: '膨化食品' }
+        ]
+      },
+      {
+        id: 53,
+        name: '饮料',
+        children: [
+          { id: 531, name: '茶饮料' },
+          { id: 532, name: '碳酸饮料' },
+          { id: 533, name: '果汁' },
+          { id: 534, name: '咖啡' }
+        ]
+      }
+    ]
+  }
+])
+
+const activeCategory = ref(null)
+
+const handleMouseEnter = (category) => {
+  activeCategory.value = category.id
+}
+
+const handleMouseLeave = () => {
+  activeCategory.value = null
 }
 </script>
 
@@ -361,135 +540,101 @@ const viewProduct = (productId) => {
   color: var(--el-color-primary);
 }
 
-.category-list {
-  display: flex;
-  flex-direction: column;
-  padding: 15px;
+.category-nav {
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  height: fit-content;  /* 高度适应内容 */
+}
+
+.category-list {
+  position: relative;
 }
 
 .category-item {
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.category-item:last-child {
-  border-bottom: none;
-}
-
-.category-item a {
-  color: #666;
-  text-decoration: none;
-  font-size: 14px;
-  transition: color 0.3s;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.category-item a:hover {
-  color: var(--el-color-primary);
-}
-
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.product-card {
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
-}
-
-.product-image-wrapper {
   position: relative;
-  padding-top: 100%;
+  padding: 12px 20px;
+  cursor: pointer;
 }
 
-.product-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.category-item:hover {
+  background-color: #f5f7fa;
 }
 
-.product-tags {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+.category-title {
   display: flex;
-  gap: 5px;
-}
-
-.product-info {
-  padding: 15px;
-}
-
-.product-name {
-  font-size: 14px;
-  margin-bottom: 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  min-height: 42px;
-}
-
-.product-meta {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #606266;
 }
 
-.product-price {
-  color: #f56c6c;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.product-sales {
+.arrow {
+  margin-left: auto;
   font-size: 12px;
   color: #909399;
 }
 
-.main-layout {
-  display: grid;
-  grid-template-columns: 250px 1fr 250px;
-  gap: 20px;
-  margin-top: -20px;
+.sub-categories {
+  position: absolute;
+  left: 200px;
+  top: 0;
+  min-width: 400px;
+  min-height: 100%;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 2px 0 12px 0 rgba(0,0,0,0.1);
+  z-index: 10;
 }
 
-.left-sidebar {
+.sub-category {
+  margin-bottom: 20px;
+}
+
+.sub-category:last-child {
+  margin-bottom: 0;
+}
+
+.sub-category-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.third-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.third-category {
+  font-size: 13px;
+  color: #606266;
+  text-decoration: none;
+}
+
+.third-category:hover {
+  color: var(--el-color-primary);
+}
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr 250px;  /* 修改为三栏布局 */
+  gap: 20px;
+}
+
+.main-content {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-}
-
-.sidebar-title {
-  padding: 15px 20px;
-  margin: 0;
-  font-size: 18px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 20px;
 }
 
 .promotion-links {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 15px;
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
   margin-bottom: 20px;
 }
 
@@ -583,7 +728,7 @@ const viewProduct = (productId) => {
 
 @media screen and (max-width: 1200px) {
   .main-layout {
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 200px 1fr;  /* 隐藏右侧边栏 */
   }
   
   .right-sidebar {
@@ -593,11 +738,118 @@ const viewProduct = (productId) => {
 
 @media screen and (max-width: 768px) {
   .main-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr;  /* 在移动端变为单列 */
   }
   
-  .left-sidebar {
-    display: none;
+  .category-nav {
+    display: none;  /* 在移动端隐藏分类导航 */
+  }
+}
+
+.hot-products {
+  margin: 30px 0;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.product-card {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+  cursor: pointer;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 16px 0 rgba(0,0,0,0.1);
+}
+
+.product-image {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* 1:1 宽高比 */
+  overflow: hidden;
+}
+
+.product-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+
+.product-tags {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 5px;
+}
+
+.product-info {
+  padding: 12px;
+}
+
+.product-name {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.4;
+  height: 40px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.product-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  color: #f56c6c;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.sales {
+  color: #909399;
+  font-size: 12px;
+}
+
+@media screen and (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .product-info {
+    padding: 8px;
+  }
+
+  .product-name {
+    font-size: 13px;
+    height: 36px;
+  }
+
+  .price {
+    font-size: 16px;
   }
 }
 </style> 
