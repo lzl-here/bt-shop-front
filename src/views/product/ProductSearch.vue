@@ -221,9 +221,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, ArrowRight, Folder, Shop } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
+import { useProductStore } from '../../stores/products'
 
 const route = useRoute()
 const router = useRouter()
+const productStore = useProductStore()
 
 // 初始化数据
 const currentPage = ref(1)
@@ -252,190 +254,8 @@ const brands = ref([
   { id: 4, name: 'Apple', logo: 'https://via.placeholder.com/24x24' }
 ])
 
-// 商品数据
-const mockProducts = ref([
-  {
-    id: 1,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 2,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 3,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 4,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 5,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 6,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '苹果官方旗舰店'
-  },
-  {
-    id: 7,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 8,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 9,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 10,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 11,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 12,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 13,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 14,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 15,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 16,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 17,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  {
-    id: 18,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    image: 'https://via.placeholder.com/200x200',
-    brandId: 3,
-    brandName: 'HUAWEI',
-    storeId: 1,
-    storeName: '华为官方旗舰店'
-  },
-  // ... 其他商品数据保持不变
-])
+// 使用 store 中的商品数据替换本地的 mockProducts
+const mockProducts = computed(() => productStore.products)
 
 // 添加计算属性来获取当前页的商品
 const currentPageProducts = computed(() => {
@@ -473,8 +293,9 @@ const handleSearch = () => {
   }
 }
 
-// 添加跳转方法
+// 查看商品详情
 const viewDetail = (productId) => {
+  console.log('点击商品ID:', productId) // 添加调试日志
   router.push(`/products/${productId}`)
 }
 

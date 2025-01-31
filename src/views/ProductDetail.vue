@@ -1,5 +1,5 @@
 <template>
-  <div class="product-detail">
+  <div v-if="product" class="product-detail">
     <div class="product-container">
       <!-- 左侧商品图片 -->
       <div class="product-gallery">
@@ -148,51 +148,29 @@
       </el-tabs>
     </div>
   </div>
+  <div v-else class="loading-container">
+    <el-empty description="商品信息加载中..." />
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
+import { useProductStore } from '../stores/products'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
-
-const quantity = ref(1)
-const activeTab = ref('detail')
+const productStore = useProductStore()
 
 // 商品信息
-const product = reactive({
-  id: Number(route.params.id),
-  name: 'HUAWEI Mate 60 Pro',
-  price: 6999,
-  description: '华为年度旗舰手机，搭载麒麟芯片，超长续航',
-  image: 'https://via.placeholder.com/400x400',
-  images: [
-    'https://via.placeholder.com/100x100',
-    'https://via.placeholder.com/100x100',
-    'https://via.placeholder.com/100x100'
-  ],
-  detailImages: [
-    'https://via.placeholder.com/800x600',
-    'https://via.placeholder.com/800x600'
-  ],
-  sales: 1000,
-  brandName: 'HUAWEI',
-  storeName: '华为官方旗舰店',
-  specs: {
-    '屏幕尺寸': '6.76英寸',
-    '分辨率': 'FHD+ 2772',
-    '刷新率': '90Hz',
-    '处理器': '麒麟芯片',
-    '电池容量': '5000mAh'
-  }
-})
+const product = ref(null)
+const activeTab = ref('detail')
 
 // 规格选项
-const specs = reactive({
+const specs = {
   colors: [
     { label: '墨玉青', value: 'blue' },
     { label: '雅川青', value: 'green' },
@@ -208,59 +186,81 @@ const specs = reactive({
     { label: '512GB', value: '512' },
     { label: '1TB', value: '1024' }
   ]
-})
+}
 
 // 选中的规格
-const selectedSpecs = reactive({
+const selectedSpecs = ref({
   color: '',
   memory: '',
   storage: ''
 })
 
-// 选择图片
-const selectImage = (img) => {
-  product.image = img
-}
+// 数量
+const quantity = ref(1)
+
+// 在组件挂载时获取商品详情
+onMounted(async () => {
+  try {
+    const productId = route.params.id
+    console.log('当前商品ID:', productId)
+    
+    // 重置规格选择状态
+    selectedSpecs.value = {
+      color: '',
+      memory: '',
+      storage: ''
+    }
+    // 重置数量
+    quantity.value = 1
+    
+    // 从 store 获取商品详情
+    product.value = productStore.getProductById(productId)
+    console.log('获取到的商品信息:', product.value)
+    
+    if (!product.value) {
+      throw new Error('商品不存在')
+    }
+  } catch (error) {
+    ElMessage.error(error.message || '商品加载失败')
+    router.push('/products')
+  }
+})
 
 // 选择规格
 const selectSpec = (type, value) => {
-  selectedSpecs[type] = value
+  selectedSpecs.value[type] = value
 }
 
 // 检查是否已选择所有规格
 const checkSpecsSelected = () => {
-  return selectedSpecs.color && selectedSpecs.memory && selectedSpecs.storage
+  return selectedSpecs.value.color && 
+         selectedSpecs.value.memory && 
+         selectedSpecs.value.storage
 }
 
-// 加入购物车
+// 添加到购物车
 const addToCart = () => {
   if (!checkSpecsSelected()) {
     ElMessage.warning('请选择商品规格')
     return
   }
-  const productToAdd = {
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    description: product.description,
-    image: product.image,
-    brandName: product.brandName,
-    storeName: product.storeName,
+
+  const cartItem = {
+    id: product.value.id,
+    name: product.value.name,
+    price: product.value.price,
+    image: product.value.image,
     quantity: quantity.value,
-    selected: true,
     specs: {
-      color: specs.colors.find(c => c.value === selectedSpecs.color)?.label,
-      memory: specs.memory.find(m => m.value === selectedSpecs.memory)?.label,
-      storage: specs.storage.find(s => s.value === selectedSpecs.storage)?.label
-    }
+      color: specs.colors.find(c => c.value === selectedSpecs.value.color)?.label,
+      memory: specs.memory.find(m => m.value === selectedSpecs.value.memory)?.label,
+      storage: specs.storage.find(s => s.value === selectedSpecs.value.storage)?.label
+    },
+    storeName: product.value.storeName
   }
-  
-  cartStore.addToCart(productToAdd)
-  ElMessage({
-    type: 'success',
-    message: '成功加入购物车',
-    duration: 2000
-  })
+
+  cartStore.addToCart(cartItem)
+  ElMessage.success('已添加到购物车')
 }
 
 // 立即购买
@@ -269,52 +269,23 @@ const buyNow = () => {
     ElMessage.warning('请选择商品规格')
     return
   }
+
   const orderItem = {
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    description: product.description,
-    image: product.image,
-    brandName: product.brandName,
-    storeName: product.storeName,
+    ...product.value,
     quantity: quantity.value,
-    selected: true,
     specs: {
-      color: specs.colors.find(c => c.value === selectedSpecs.color)?.label,
-      memory: specs.memory.find(m => m.value === selectedSpecs.memory)?.label,
-      storage: specs.storage.find(s => s.value === selectedSpecs.storage)?.label
+      color: specs.colors.find(c => c.value === selectedSpecs.value.color)?.label,
+      memory: specs.memory.find(m => m.value === selectedSpecs.value.memory)?.label,
+      storage: specs.storage.find(s => s.value === selectedSpecs.value.storage)?.label
     }
   }
 
   localStorage.setItem('tempOrder', JSON.stringify([orderItem]))
-  
   router.push({
     path: '/checkout',
     query: { from: 'buyNow' }
   })
 }
-
-// 在组件挂载时获取商品详情
-onMounted(async () => {
-  // TODO: 这里应该从后端获取商品详情
-  // 目前使用模拟数据
-  const productId = Number(route.params.id)
-  product.id = productId
-  product.name = 'HUAWEI Mate 60 Pro'
-  product.price = 6999
-  product.description = '华为年度旗舰手机，搭载麒麟芯片，超长续航'
-  product.image = 'https://via.placeholder.com/400x400'
-  product.brandName = 'HUAWEI'
-  product.storeName = '华为官方旗舰店'
-  product.sales = 1000
-  product.specs = {
-    '屏幕尺寸': '6.76英寸',
-    '分辨率': 'FHD+ 2772',
-    '刷新率': '90Hz',
-    '处理器': '麒麟芯片',
-    '电池容量': '5000mAh'
-  }
-})
 </script>
 
 <style scoped>
@@ -492,5 +463,12 @@ onMounted(async () => {
   .action-buttons {
     flex-direction: column;
   }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
 }
 </style> 
