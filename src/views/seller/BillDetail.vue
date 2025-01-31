@@ -51,26 +51,29 @@
           padding: '8px 12px'
         }"
       >
-        <el-table-column prop="paymentNo" label="支付单号" width="160" />
-        <el-table-column prop="orderNo" label="订单号" width="160" />
-        <el-table-column prop="orderItemNo" label="订单项号" width="160" />
-        <el-table-column prop="amount" label="支付金额">
+        <el-table-column prop="paymentNo" label="支付单号" width="180" />
+        <el-table-column prop="orderNo" label="订单号" width="180" />
+        <el-table-column prop="orderItemNo" label="订单项号" width="180" />
+        <el-table-column prop="amount" label="支付金额" width="150">
           <template #default="{ row }">
-            ¥{{ row.amount.toFixed(2) }}
+            <span class="amount">¥{{ row.amount.toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="paymentTime" label="支付时间" width="160" />
-        <el-table-column prop="paymentMethod" label="支付方式" width="100" />
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="paymentMethod" label="支付方式" width="120" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getPaymentStatusType(row.status)">
+            <el-tag 
+              :type="getPaymentStatusType(row.status)"
+              size="small"
+              effect="light"
+            >
               {{ getPaymentStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="paymentTime" label="支付时间" min-width="180" />
       </el-table>
 
-      <!-- 分页 -->
       <div class="pagination">
         <el-pagination
           v-model:current-page="currentPage"
@@ -267,7 +270,7 @@ onMounted(() => {
 }
 
 .payment-list {
-  margin: 20px 20px 0;
+  margin: 20px 0 0;
   padding: 0 20px 20px;
   background: #fff;
   border-radius: 4px;
@@ -314,11 +317,70 @@ onMounted(() => {
   background-color: #f5f7fa;
 }
 
+:deep(.el-table .cell) {
+  white-space: nowrap;
+}
+
+:deep(.el-table__cell) {
+  text-align: left;
+}
+
+:deep(.el-table__cell:last-child .cell) {
+  text-align: center;
+}
+
+.amount {
+  color: #f56c6c;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:deep(.el-tag) {
+  border: none;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 11px;
+}
+
+:deep(.el-tag--success) {
+  background-color: #f0f9eb;
+  color: #67c23a;
+}
+
+:deep(.el-tag--warning) {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+}
+
 .pagination {
   margin-top: 20px;
   padding-top: 20px;
   display: flex;
   justify-content: flex-end;
   border-top: 1px solid #ebeef5;
+}
+
+:deep(.el-pagination) {
+  padding: 0;
+  font-weight: normal;
+}
+
+:deep(.el-pagination .el-select .el-input) {
+  width: 100px;
+}
+
+:deep(.el-pagination button) {
+  background-color: transparent;
+}
+
+:deep(.el-pagination .el-pager li) {
+  background-color: transparent;
+  border: none;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  color: var(--el-color-primary);
+  font-weight: bold;
 }
 </style> 

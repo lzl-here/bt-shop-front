@@ -1,6 +1,20 @@
 <template>
   <div class="seller-dashboard">
-    <el-container>
+    <!-- 未入驻状态 -->
+    <div v-if="!hasStore" class="no-store">
+      <el-empty description="暂无店铺">
+        <template #image>
+          <el-icon :size="60"><Shop /></el-icon>
+        </template>
+        <template #description>
+          <p>您还没有开通店铺</p>
+        </template>
+        <el-button type="primary" @click="goToApply">立即入驻</el-button>
+      </el-empty>
+    </div>
+
+    <!-- 已入驻状态 -->
+    <el-container v-else>
       <!-- 侧边栏 -->
       <el-aside width="200px">
         <div class="store-info">
@@ -167,24 +181,44 @@
 
           <!-- 订单管理面板 -->
           <div v-if="activeMenu === 'orders'" class="orders-panel">
-            <el-table :data="currentPageOrders" style="width: 100%">
-              <el-table-column prop="orderNumber" label="订单号" width="180" />
-              <el-table-column prop="orderTime" label="下单时间" width="180" />
-              <el-table-column prop="customerName" label="买家" width="120" />
-              <el-table-column prop="total" label="订单金额">
+            <el-table 
+              :data="currentPageOrders" 
+              style="width: 100%"
+              :header-cell-style="{
+                background: '#F5F7FA',
+                color: '#606266',
+                fontWeight: 500,
+                fontSize: '12px',
+                height: '36px',
+                padding: '4px 12px'
+              }"
+              :cell-style="{
+                fontSize: '12px',
+                padding: '8px 12px'
+              }"
+            >
+              <el-table-column prop="tradeNo" label="交易单号" width="170" />
+              <el-table-column prop="orderNumber" label="订单号" width="170" />
+              <el-table-column prop="customerName" label="买家" width="80" />
+              <el-table-column prop="total" label="订单金额" width="120">
                 <template #default="{ row }">
-                  ¥{{ row.total.toFixed(2) }}
+                  <span class="amount">¥{{ row.total.toFixed(2) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="paymentMethod" label="支付方式" width="120" />
-              <el-table-column prop="status" label="订单状态" width="120">
+              <el-table-column prop="paymentMethod" label="支付方式" width="100" />
+              <el-table-column prop="status" label="订单状态" width="90">
                 <template #default="{ row }">
-                  <el-tag :type="getStatusType(row.status)">
+                  <el-tag 
+                    :type="getStatusType(row.status)"
+                    size="small"
+                    effect="light"
+                  >
                     {{ row.status }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="200">
+              <el-table-column prop="orderTime" label="下单时间" min-width="150" />
+              <el-table-column label="操作" width="140" fixed="right">
                 <template #default="{ row }">
                   <el-button 
                     v-if="['已支付', '待发货', '部分发货'].includes(row.status)"
@@ -251,24 +285,26 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { DataLine, Goods, List, Setting, Plus, Money } from '@element-plus/icons-vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { DataLine, Goods, List, Setting, Plus, Money, Shop } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import BillRecords from './BillRecords.vue'
 import StoreSettings from './StoreSettings.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
+import { useStoreStore } from '../../stores/store'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const storeStore = useStoreStore()
 
-const activeMenu = ref('settings')
+// 从 URL 参数中获取要激活的标签
+const activeMenu = ref(route.query.tab || 'settings')
 
-// 店铺信息
-const storeInfo = ref({
-  name: '华为官方旗舰店',
-  logo: 'https://via.placeholder.com/60'
-})
+// 使用 store 中的店铺状态
+const hasStore = computed(() => storeStore.hasStore)
+const storeInfo = computed(() => storeStore.storeInfo)
 
 // 统计数据
 const statistics = ref({
@@ -360,6 +396,7 @@ const deleteProduct = (product) => {
 const orders = ref(Array.from({ length: 37 }, (_, index) => {
   const id = index + 1
   const orderNumber = `O202403200000${id.toString().padStart(3, '0')}`
+  const tradeNo = `T202403200000${id.toString().padStart(3, '0')}`
   const hour = Math.floor(Math.random() * 24)
   const minute = Math.floor(Math.random() * 60)
   const orderTime = `2024-03-20 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`
@@ -380,6 +417,7 @@ const orders = ref(Array.from({ length: 37 }, (_, index) => {
   return {
     id,
     orderNumber,
+    tradeNo,
     orderTime,
     customerName,
     total,
@@ -501,6 +539,23 @@ const handleOrderAction = (order, action) => {
       break
   }
 }
+
+const goToApply = () => {
+  router.push('/seller/apply')
+}
+
+onMounted(async () => {
+  // TODO: 获取店铺信息
+  // const response = await getStoreInfo()
+  // if (response.success) {
+  //   storeStore.setStoreInfo(response.data)
+  // }
+  
+  // 临时模拟数据
+  if (!storeStore.hasStore) {
+    storeStore.clearStoreInfo()
+  }
+})
 
 </script>
 
@@ -671,5 +726,89 @@ const handleOrderAction = (order, action) => {
 
 .username {
   font-size: 14px;
+}
+
+.no-store {
+  height: calc(100vh - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.no-store :deep(.el-empty__image) {
+  color: #909399;
+}
+
+.no-store p {
+  color: #909399;
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.orders-panel :deep(.el-table) {
+  --el-table-border-color: #ebeef5;
+  --el-table-header-bg-color: #F5F7FA;
+  border-radius: 4px;
+  border: 1px solid var(--el-table-border-color);
+}
+
+.orders-panel :deep(.el-table::before) {
+  display: none;
+}
+
+.orders-panel :deep(.el-table__inner-wrapper::before) {
+  display: none;
+}
+
+.orders-panel :deep(.el-table th.el-table__cell) {
+  background: var(--el-table-header-bg-color);
+}
+
+.orders-panel :deep(.el-table .cell) {
+  padding: 0;
+  white-space: nowrap;
+}
+
+.orders-panel :deep(.el-table__cell) {
+  padding: 4px 0;
+}
+
+.orders-panel :deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
+  background-color: #f5f7fa;
+}
+
+.amount {
+  color: #f56c6c;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.orders-panel :deep(.el-tag) {
+  border: none;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 11px;
+}
+
+.orders-panel :deep(.el-tag--success) {
+  background-color: #f0f9eb;
+  color: #67c23a;
+}
+
+.orders-panel :deep(.el-tag--warning) {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+}
+
+.orders-panel :deep(.el-tag--primary) {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.orders-panel :deep(.el-tag--info) {
+  background-color: #f4f4f5;
+  color: #909399;
 }
 </style> 

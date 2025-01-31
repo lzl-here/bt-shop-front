@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import { useUserStore } from '../stores/user'
+import { useStoreStore } from '../stores/store'
 
 // 预导入关键组件
 import User from '../views/User.vue'
@@ -136,6 +137,15 @@ const routes = [
       requiresAuth: true,
       requiresStore: true
     }
+  },
+  {
+    path: '/seller/apply',
+    name: 'StoreApply',
+    component: () => import('../views/seller/StoreApply.vue'),
+    meta: { 
+      requiresAuth: true,
+      title: '店铺入驻'
+    }
   }
 ]
 
@@ -147,9 +157,17 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
+  const storeStore = useStoreStore()
   
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
+  } else if (to.meta.requiresStore && !storeStore.hasStore) {
+    // 如果需要店铺权限但没有店铺，重定向到入驻页面
+    if (to.path !== '/seller/apply') {
+      next('/seller/apply')
+    } else {
+      next()
+    }
   } else {
     next()
   }
