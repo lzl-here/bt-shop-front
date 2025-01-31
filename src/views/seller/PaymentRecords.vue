@@ -49,22 +49,6 @@
               确认收款
             </button>
           </div>
-          <div class="order-items" v-if="record.items.length > 1">
-            <div v-for="item in record.items" :key="item.id" class="order-item">
-              <div class="item-info">
-                <span class="item-name">{{ item.productName }}</span>
-                <span class="item-price">¥{{ item.price.toFixed(2) }} × {{ item.quantity }}</span>
-              </div>
-              <div class="item-status">
-                <span :class="['status-tag', getStatusTag(item.status).type]">
-                  {{ getStatusTag(item.status).text }}
-                </span>
-                <span v-if="item.trackingNo" class="tracking-no">
-                  物流单号: {{ item.trackingNo }}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -109,61 +93,35 @@ const ItemStatus = {
   CANCELLED: 'cancelled'               // 已取消
 }
 
-// 修改模拟数据
-const records = ref([
-  {
-    id: 1,
-    tradeNo: '2024031510302500001',
-    orderNo: 'P202403150001',
-    amount: 6999.00,
-    paymentTime: '2024-03-15 10:30:25',
-    paymentMethod: '支付宝',
-    status: 'pending_confirm',
-    items: [
-      {
-        id: 1,
-        productId: 101,
-        productName: 'HUAWEI Mate 60 Pro',
-        price: 6999.00,
-        quantity: 1,
-        status: 'pending_ship',
-        shipTime: null,
-        trackingNo: null
-      }
-    ]
-  },
-  {
-    id: 2,
-    tradeNo: '2024031511201500002',
-    orderNo: 'P202403150002',
-    amount: 7998.00,
-    paymentTime: '2024-03-15 11:20:15',
-    paymentMethod: '微信支付',
-    status: 'pending_ship', // 部分商品未发货
-    items: [
-      {
-        id: 2,
-        productId: 102,
-        productName: 'HUAWEI MatePad Pro',
-        price: 4999.00,
-        quantity: 1,
-        status: 'shipped',
-        shipTime: '2024-03-15 14:30:00',
-        trackingNo: 'SF1234567890'
-      },
-      {
-        id: 3,
-        productId: 103,
-        productName: 'HUAWEI FreeBuds Pro 3',
-        price: 2999.00,
-        quantity: 1,
-        status: 'pending_ship',
-        shipTime: null,
-        trackingNo: null
-      }
-    ]
+// 支付流水
+const records = ref(Array.from({ length: 37 }, (_, index) => {
+  const id = index + 1
+  const tradeNo = `2024032010${id.toString().padStart(4, '0')}`
+  const orderNo = `P202403200${id.toString().padStart(3, '0')}`
+  const hour = Math.floor(Math.random() * 24)
+  const minute = Math.floor(Math.random() * 60)
+  const second = Math.floor(Math.random() * 60)
+  const paymentTime = `2024-03-20 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}`
+  
+  // 随机生成金额
+  const amount = [6999.00, 7999.00, 8999.00, 13998.00][Math.floor(Math.random() * 4)]
+  
+  // 随机生成支付方式
+  const paymentMethod = ['支付宝', '微信支付'][Math.floor(Math.random() * 2)]
+  
+  // 随机生成状态
+  const status = ['pending_confirm', 'completed'][Math.floor(Math.random() * 2)]
+
+  return {
+    id,
+    tradeNo,
+    orderNo,
+    amount,
+    paymentTime,
+    paymentMethod,
+    status
   }
-])
+}))
 
 // 修改状态显示
 const getStatusTag = (status) => {
@@ -401,45 +359,5 @@ const handleCurrentChange = (val) => {
 .pagination :deep(.el-input__inner) {
   height: 32px;
   line-height: 32px;
-}
-
-.order-items {
-  margin-top: 8px;
-  padding: 8px 15px;
-  background-color: #f8f9fa;
-  border-radius: 2px;
-}
-
-.order-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  font-size: 12px;
-}
-
-.order-item + .order-item {
-  border-top: 1px dashed #ebeef5;
-  margin-top: 4px;
-  padding-top: 8px;
-}
-
-.item-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.item-name {
-  color: #303133;
-}
-
-.item-price {
-  color: #909399;
-}
-
-.tracking-no {
-  margin-left: 8px;
-  color: #909399;
 }
 </style> 

@@ -180,7 +180,7 @@ const total = ref(0)
 const goToPage = ref('')
 
 // 模拟交易数据
-const mockTrades = Array.from({ length: 25 }, (_, index) => ({
+const mockTrades = Array.from({ length: 36 }, (_, index) => ({
   id: `T${String(index + 1).padStart(3, '0')}`,
   createTime: '2024-03-20 14:30:00',
   status: ['待付款', '待发货', '待收货', '已完成', '已取消'][index % 5],
@@ -198,12 +198,7 @@ const mockTrades = Array.from({ length: 25 }, (_, index) => ({
           name: 'HUAWEI Mate 60 Pro',
           price: 6999.00,
           quantity: 1,
-          image: 'https://via.placeholder.com/80',
-          specs: {
-            color: '墨玉青',
-            memory: '12GB',
-            storage: '512GB'
-          }
+          image: 'https://via.placeholder.com/80'
         }
       ]
     },
@@ -219,12 +214,7 @@ const mockTrades = Array.from({ length: 25 }, (_, index) => ({
           name: '小米14 Pro',
           price: 6999.00,
           quantity: 1,
-          image: 'https://via.placeholder.com/80',
-          specs: {
-            color: '黑色',
-            memory: '12GB',
-            storage: '512GB'
-          }
+          image: 'https://via.placeholder.com/80'
         }
       ]
     }

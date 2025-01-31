@@ -357,7 +357,7 @@ const deleteProduct = (product) => {
 }
 
 // 订单数据
-const orders = ref(Array.from({ length: 25 }, (_, index) => {
+const orders = ref(Array.from({ length: 37 }, (_, index) => {
   const id = index + 1
   const orderNumber = `O202403200000${id.toString().padStart(3, '0')}`
   const hour = Math.floor(Math.random() * 24)
@@ -388,6 +388,15 @@ const orders = ref(Array.from({ length: 25 }, (_, index) => {
     products: [
       {
         id: 1,
+        name: 'HUAWEI Mate 60 Pro',
+        price: 6999.00,
+        quantity,
+        image: 'https://via.placeholder.com/100',
+        status: status === '部分发货' ? (Math.random() > 0.5 ? '已发货' : '待发货') : 
+                status === '已完成' ? '已发货' : '待发货'
+      },
+      {
+        id: 2,
         name: 'HUAWEI Mate 60 Pro',
         price: 6999.00,
         quantity,
