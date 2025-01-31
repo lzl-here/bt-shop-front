@@ -192,6 +192,26 @@
         </div>
       </div>
     </div>
+
+    <!-- 导航栏部分 -->
+    <div class="nav-links">
+      <router-link to="/" class="nav-link">
+        <el-icon><HomeFilled /></el-icon>
+        <span>首页</span>
+      </router-link>
+      <router-link to="/products" class="nav-link">
+        <el-icon><Search /></el-icon>
+        <span>搜索商品</span>
+      </router-link>
+      <router-link to="/store/search" class="nav-link">
+        <el-icon><Shop /></el-icon>
+        <span>搜索店铺</span>
+      </router-link>
+      <router-link v-if="userStore.hasStore" to="/seller" class="nav-link">
+        <el-icon><Shop /></el-icon>
+        <span>我的店铺</span>
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -199,7 +219,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { ArrowRight, ShoppingBag, Ticket, Shop, Star, ShoppingCart, Timer, QuestionFilled, ChatDotRound, Location, Bell, Folder } from '@element-plus/icons-vue'
+import { ArrowRight, ShoppingBag, Ticket, Shop, Star, ShoppingCart, Timer, QuestionFilled, ChatDotRound, Location, Bell, Folder, HomeFilled, Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -851,5 +871,32 @@ const handleMouseLeave = () => {
   .price {
     font-size: 16px;
   }
+}
+
+/* 导航栏部分 */
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+  background: #fff;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px;
+  color: #666;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.nav-link:hover {
+  color: var(--el-color-primary);
+  background: #f5f7fa;
 }
 </style> 

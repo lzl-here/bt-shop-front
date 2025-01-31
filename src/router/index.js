@@ -146,6 +146,11 @@ const routes = [
       requiresAuth: true,
       title: '店铺入驻'
     }
+  },
+  {
+    path: '/store/search',
+    name: 'StoreSearch',
+    component: () => import('../views/store/StoreSearch.vue')
   }
 ]
 
