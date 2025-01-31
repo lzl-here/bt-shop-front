@@ -1,134 +1,125 @@
 <template>
   <div class="payment-page">
-    <!-- 订单信息部分 -->
-    <div class="order-section">
-      <el-card class="order-card">
-        <template #header>
-          <div class="card-header">
-            <span class="title">订单信息</span>
-            <span class="order-number">订单号：{{ orderId }}</span>
-          </div>
-        </template>
-
-        <!-- 商品信息 -->
-        <div class="product-list">
-          <div class="product-item" v-for="item in orderItems" :key="item.id">
-            <el-image :src="item.image" class="product-image" />
-            <div class="product-info">
-              <div class="product-name">{{ item.name }}</div>
-              <div class="product-specs">
-                <el-tag size="small" type="info" v-for="(spec, key) in item.specs" :key="key">
-                  {{ spec }}
-                </el-tag>
-              </div>
-              <div class="product-price-info">
-                <span class="price">¥{{ item.price }}</span>
-                <span class="quantity">x{{ item.quantity }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 订单金额信息 -->
-        <div class="order-amount">
-          <div class="amount-item">
-            <span class="label">商品总额</span>
-            <span class="value">¥{{ totalAmount }}</span>
-          </div>
-          <div class="amount-item">
-            <span class="label">运费</span>
-            <span class="value">¥{{ shippingFee }}</span>
-          </div>
-          <div class="amount-item total">
-            <span class="label">应付金额</span>
-            <span class="value">¥{{ payAmount }}</span>
-          </div>
-        </div>
-      </el-card>
+    <div class="page-header">
+      <h2>交易详情</h2>
+      <el-button plain @click="router.push('/user/trades')">返回</el-button>
     </div>
 
-    <!-- 收银台部分 -->
-    <div class="payment-section">
-      <el-card class="payment-card">
-        <template #header>
-          <div class="card-header">
-            <span class="title">收银台</span>
-          </div>
-        </template>
-
-        <div class="payment-amount">
-          <span class="label">支付金额</span>
-          <span class="amount">¥{{ payAmount }}</span>
+    <!-- 交易信息卡片 -->
+    <el-card class="info-card">
+      <div class="info-header">
+        <div class="trade-info">
+          <span class="trade-id">交易号：{{ orderId }}</span>
+          <span class="trade-time">创建时间：{{ createTime }}</span>
+          <span class="trade-status">支付方式：未支付</span>
+          <span class="trade-time">支付时间：-</span>
         </div>
+        <div class="trade-status">
+          <el-tag type="warning">待付款</el-tag>
+        </div>
+      </div>
+    </el-card>
 
-        <div class="payment-methods">
-          <div class="section-title">选择支付方式</div>
-          <div class="method-list">
-            <div 
-              class="method-item"
-              :class="{ active: selectedMethod === 'alipay' }"
-              @click="selectedMethod = 'alipay'"
-            >
-              <i class="method-icon alipay"></i>
-              <span class="method-name">支付宝支付</span>
+    <!-- 订单列表卡片 -->
+    <el-card class="order-card">
+      <template #header>
+        <div class="card-header">
+          <span class="title">订单信息</span>
+        </div>
+      </template>
+
+      <div class="store-info">
+        <el-icon><Shop /></el-icon>
+        <span class="store-name">华为官方旗舰店</span>
+      </div>
+
+      <div class="order-items">
+        <div class="order-item">
+          <el-image 
+            src="https://via.placeholder.com/80" 
+            class="product-image"
+            fit="cover"
+          />
+          <div class="product-info">
+            <div class="product-name">HUAWEI Mate 60 Pro</div>
+            <div class="product-specs">
+              <el-tag size="small" type="info">墨玉青</el-tag>
+              <el-tag size="small" type="info">12GB</el-tag>
+              <el-tag size="small" type="info">512GB</el-tag>
             </div>
-            <div 
-              class="method-item"
-              :class="{ active: selectedMethod === 'wechat' }"
-              @click="selectedMethod = 'wechat'"
-            >
-              <i class="method-icon wechat"></i>
-              <span class="method-name">微信支付</span>
-            </div>
+          </div>
+          <div class="price-info">
+            <div class="price">¥6999</div>
+            <div class="quantity">x1</div>
           </div>
         </div>
+      </div>
 
-        <div class="payment-action">
-          <el-button type="primary" size="large" @click="handlePayment">
-            立即支付
-          </el-button>
-          <el-button type="danger" size="large" @click="handleCancel">
-            取消支付
-          </el-button>
+      <div class="order-summary">
+        共1件商品，小计：<span class="total-amount">¥6999</span>
+      </div>
+    </el-card>
+
+    <!-- 收银台卡片 -->
+    <el-card class="payment-card">
+      <template #header>
+        <div class="card-header">
+          <span class="title">收银台</span>
         </div>
-      </el-card>
-    </div>
+      </template>
+
+      <div class="payment-amount">
+        <span class="label">交易金额</span>
+        <span class="amount">¥{{ amount }}</span>
+      </div>
+
+      <div class="payment-methods">
+        <div class="section-title">选择支付方式</div>
+        <div class="method-list">
+          <div 
+            class="method-item"
+            :class="{ active: selectedMethod === 'alipay' }"
+            @click="selectedMethod = 'alipay'"
+          >
+            <i class="method-icon alipay"></i>
+            <span class="method-name">支付宝支付</span>
+          </div>
+          <div 
+            class="method-item"
+            :class="{ active: selectedMethod === 'wechat' }"
+            @click="selectedMethod = 'wechat'"
+          >
+            <i class="method-icon wechat"></i>
+            <span class="method-name">微信支付</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-action">
+        <el-button type="primary" size="large" @click="handlePayment">
+          立即支付
+        </el-button>
+        <el-button type="danger" size="large" @click="handleCancel">
+          取消支付
+        </el-button>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Shop } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 
-// 订单信息
+// 交易基本信息
 const orderId = ref(route.query.orderId)
-const orderItems = ref([
-  {
-    id: 1,
-    name: 'HUAWEI Mate 60 Pro',
-    price: 6999,
-    quantity: 1,
-    image: 'https://via.placeholder.com/120',
-    specs: {
-      color: '墨玉青',
-      memory: '12GB',
-      storage: '512GB'
-    }
-  }
-])
-
-// 金额计算
-const totalAmount = computed(() => {
-  return orderItems.value.reduce((total, item) => total + item.price * item.quantity, 0)
-})
-const shippingFee = ref(0)
-const payAmount = computed(() => totalAmount.value + shippingFee.value)
-
-// 支付方式
+const amount = ref(Number(route.query.amount) || 0)
+const createTime = ref('2024-03-20 14:30:00')
 const selectedMethod = ref('')
 
 // 处理支付
@@ -154,7 +145,6 @@ const handleCancel = () => {
       type: 'warning'
     }
   ).then(() => {
-    // 取消支付后返回订单列表页
     router.push('/user/trades')
   }).catch(() => {
     // 用户点击取消按钮，不做任何操作
@@ -163,8 +153,8 @@ const handleCancel = () => {
 
 // 初始化
 onMounted(() => {
-  if (!orderId.value) {
-    ElMessage.error('订单不存在')
+  if (!orderId.value || !amount.value) {
+    ElMessage.error('交易不存在')
     router.push('/')
   }
 })
@@ -177,101 +167,45 @@ onMounted(() => {
   padding: 0 20px;
 }
 
-.order-card,
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.info-card,
 .payment-card {
   margin-bottom: 20px;
 }
 
-.card-header {
+.info-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.title {
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.order-number {
-  color: #909399;
-}
-
-.product-list {
-  margin-bottom: 20px;
-}
-
-.product-item {
+.trade-info {
   display: flex;
-  gap: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.product-item:last-child {
-  border-bottom: none;
-}
-
-.product-image {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-}
-
-.product-info {
-  flex: 1;
-}
-
-.product-name {
-  margin-bottom: 8px;
+  gap: 24px;
+  color: #606266;
   font-size: 14px;
-}
-
-.product-specs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.product-price-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price {
-  color: #f56c6c;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.quantity {
-  color: #909399;
-}
-
-.order-amount {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.amount-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.amount-item.total {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #f0f0f0;
-  font-size: 16px;
-  font-weight: 500;
 }
 
 .payment-amount {
   text-align: center;
   margin-bottom: 30px;
+}
+
+.payment-amount .label {
+  font-size: 16px;
+  color: #606266;
+  margin-right: 10px;
 }
 
 .payment-amount .amount {
@@ -313,21 +247,6 @@ onMounted(() => {
   background-color: var(--el-color-primary-light-9);
 }
 
-.method-icon {
-  width: 24px;
-  height: 24px;
-  background-size: contain;
-  background-repeat: no-repeat;
-}
-
-.method-icon.alipay {
-  background-image: url('path/to/alipay-icon.png');
-}
-
-.method-icon.wechat {
-  background-image: url('path/to/wechat-icon.png');
-}
-
 .payment-action {
   text-align: center;
   display: flex;
@@ -340,5 +259,101 @@ onMounted(() => {
   width: 180px;
   height: 48px;
   font-size: 16px;
+}
+
+/* 订单列表样式 */
+.order-card {
+  margin-bottom: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.store-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 15px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #606266;
+}
+
+.store-name {
+  font-size: 14px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.order-items {
+  padding: 20px 0;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-name {
+  font-size: 14px;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.product-specs {
+  display: flex;
+  gap: 8px;
+}
+
+.price-info {
+  text-align: right;
+  min-width: 100px;
+}
+
+.price {
+  color: #f56c6c;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.quantity {
+  color: #909399;
+  font-size: 13px;
+}
+
+.order-summary {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+  color: #606266;
+  font-size: 14px;
+}
+
+.total-amount {
+  margin-left: 8px;
+  color: #f56c6c;
+  font-size: 16px;
+  font-weight: 500;
 }
 </style> 
