@@ -1,5 +1,68 @@
 <template>
   <div class="payment-records">
+    <!-- 搜索条件 -->
+    <div class="search-form">
+      <el-form :inline="true" :model="searchForm" size="default">
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-form-item label="状态">
+              <el-select v-model="searchForm.status" placeholder="全部状态" clearable>
+                <el-option label="待确认" value="pending_confirm" />
+                <el-option label="已完成" value="completed" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="结算单号">
+              <el-input 
+                v-model="searchForm.tradeNo" 
+                placeholder="请输入结算单号"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="订单号">
+              <el-input 
+                v-model="searchForm.orderNo" 
+                placeholder="请输入订单号"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="买家">
+              <el-input 
+                v-model="searchForm.buyer" 
+                placeholder="请输入买家名称"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="6">
+            <el-form-item label="支付方式">
+              <el-select v-model="searchForm.paymentMethod" placeholder="全部方式" clearable>
+                <el-option label="支付宝" value="支付宝" />
+                <el-option label="微信支付" value="微信支付" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item class="search-buttons">
+              <el-button type="primary" @click="handleSearch">
+                <el-icon><Search /></el-icon>查询
+              </el-button>
+              <el-button @click="resetSearch">
+                <el-icon><RefreshRight /></el-icon>重置
+              </el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
+
     <div class="tabs">
       <div 
         class="tab-item" 
@@ -40,7 +103,6 @@
           :prop="column.prop"
           :label="column.label"
           :width="column.width"
-          :fixed="column.fixed"
         >
           <template #default="{ row }" v-if="column.prop === 'amount'">
             <span class="amount">¥{{ row[column.prop].toFixed(2) }}</span>
@@ -54,7 +116,14 @@
               {{ getStatusText(row.status) }}
             </el-tag>
           </template>
-          <template #default="{ row }" v-else-if="!column.prop">
+        </el-table-column>
+        <el-table-column 
+          fixed="right"
+          label="操作" 
+          width="180"
+          class-name="operation-column"
+        >
+          <template #default="{ row }">
             <div class="action-buttons">
               <el-button 
                 v-if="row.status === 'pending_confirm'"
@@ -66,11 +135,11 @@
               </el-button>
               <el-button 
                 type="primary" 
-                link
                 size="small"
+                link
                 @click="viewDetail(row)"
               >
-                查看
+                查看详情
               </el-button>
             </div>
           </template>
@@ -98,6 +167,7 @@
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { Search, RefreshRight } from '@element-plus/icons-vue'
 
 const status = ref('pending')
 const currentPage = ref(1)
@@ -156,19 +226,56 @@ const columns = [
   { prop: 'startTime', label: '开始时间', width: '150' },
   { prop: 'endTime', label: '结束时间', width: '150' },
   { prop: 'paymentMethod', label: '支付方式', width: '100' },
-  { prop: 'status', label: '状态', width: '90' },
-  { 
-    label: '操作', 
-    width: '140',
-    fixed: 'right'
-  }
+  { prop: 'status', label: '状态', width: '90' }
 ]
 
-// 计算当前页的记录
+// 搜索表单
+const searchForm = ref({
+  status: '',
+  tradeNo: '',
+  orderNo: '',
+  buyer: '',
+  paymentMethod: ''
+})
+
+// 处理搜索
+const handleSearch = () => {
+  currentPage.value = 1 // 重置页码
+  fetchRecords()
+}
+
+// 重置搜索
+const resetSearch = () => {
+  searchForm.value = {
+    status: '',
+    tradeNo: '',
+    orderNo: '',
+    buyer: '',
+    paymentMethod: ''
+  }
+  handleSearch()
+}
+
+// 修改过滤逻辑
 const currentPageRecords = computed(() => {
-  const filtered = records.value.filter(record => 
-    status.value === 'pending' ? record.status === 'pending_confirm' : record.status === 'completed'
-  )
+  let filtered = records.value
+
+  // 根据搜索条件过滤
+  if (searchForm.value.status) {
+    filtered = filtered.filter(record => record.status === searchForm.value.status)
+  }
+  if (searchForm.value.tradeNo) {
+    filtered = filtered.filter(record => record.tradeNo.includes(searchForm.value.tradeNo))
+  }
+  if (searchForm.value.orderNo) {
+    filtered = filtered.filter(record => record.orderNo.includes(searchForm.value.orderNo))
+  }
+  if (searchForm.value.buyer) {
+    filtered = filtered.filter(record => record.buyer?.includes(searchForm.value.buyer))
+  }
+  if (searchForm.value.paymentMethod) {
+    filtered = filtered.filter(record => record.paymentMethod === searchForm.value.paymentMethod)
+  }
   
   // 更新总数
   total.value = filtered.length
@@ -255,197 +362,72 @@ const viewDetail = (record) => {
 <style scoped>
 .payment-records {
   padding: 20px;
+  background: #f5f7fa;
+  min-height: calc(100vh - 60px);
+}
+
+.search-form {
   background: #fff;
+  padding: 24px;
   border-radius: 4px;
-}
-
-.tabs {
-  display: flex;
-  border-bottom: 1px solid #e4e7ed;
   margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.tab-item {
-  padding: 12px 20px;
-  cursor: pointer;
-  color: #606266;
-  border-bottom: 2px solid transparent;
-  margin-right: 20px;
+:deep(.el-form--inline) {
+  display: block;
 }
 
-.tab-item.active {
-  color: #409eff;
-  border-bottom-color: #409eff;
-}
-
-.records-table {
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+  margin-right: 0;
   width: 100%;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
 }
 
-.table-header {
-  display: flex;
-  background-color: #f5f7fa;
-  padding: 12px 0;
-  font-weight: 500;
-  font-size: 12px;
-}
-
-.table-row {
-  display: flex;
-  padding: 12px 0;
-  border-top: 1px solid #ebeef5;
-  font-size: 12px;
-}
-
-.table-row:hover {
-  background-color: #f5f7fa;
-}
-
-.col-trade-no { width: 15%; padding: 0 15px; }
-.col-amount { width: 15%; padding: 0 15px; color: #f56c6c; }
-.col-start-time { width: 15%; padding: 0 15px; }
-.col-end-time { width: 15%; padding: 0 15px; }
-.col-method { width: 15%; padding: 0 15px; }
-.col-status { width: 10%; padding: 0 15px; }
-.col-action { width: 15%; padding: 0 15px; display: flex; gap: 8px; }
-
-.status-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-size: 11px;
-}
-
-.status-tag.pending {
-  background-color: #fdf6ec;
-  color: #e6a23c;
-}
-
-.status-tag.confirmed {
-  background-color: #f0f9eb;
-  color: #67c23a;
-}
-
-.confirm-btn {
-  padding: 0 6px;
-  background-color: #409eff;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 11px;
-  line-height: 1.4;
-  min-height: 18px;
-  height: 18px;
-  white-space: nowrap;
-  min-width: 36px;
-}
-
-.confirm-btn:hover {
-  background-color: #66b1ff;
-}
-
-.detail-btn {
-  padding: 0 6px;
-  background-color: #fff;
-  color: #409eff;
-  border: 1px solid #409eff;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 11px;
-  line-height: 1.4;
-  min-height: 18px;
-  height: 18px;
-  white-space: nowrap;
-  min-width: 36px;
-}
-
-.detail-btn:hover {
-  color: #66b1ff;
-  border-color: #66b1ff;
-  background-color: #ecf5ff;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: 40px;
-}
-
-.pagination :deep(.el-pagination) {
-  padding: 2px 5px;
-}
-
-.pagination :deep(.el-pagination.is-background .el-pager li) {
-  margin: 0 4px;
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
-  font-size: 14px;
+:deep(.el-form-item__label) {
   font-weight: normal;
   color: #606266;
-  background-color: #f4f4f5;
-  border-radius: 4px;
+  padding-right: 12px;
+  width: 70px !important;
 }
 
-.pagination :deep(.el-pagination.is-background .el-pager li:not(.disabled).active) {
-  background-color: var(--el-color-primary);
-  color: #fff;
-  font-weight: bold;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+:deep(.el-input__wrapper),
+:deep(.el-select) {
+  width: 100%;
 }
 
-.pagination :deep(.el-pagination.is-background .el-pager li:not(.disabled):hover) {
-  color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-  transition: all 0.3s;
+:deep(.el-select .el-input) {
+  width: 100%;
 }
 
-.pagination :deep(.btn-prev),
-.pagination :deep(.btn-next) {
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
-  background-color: #f4f4f5;
-  color: #606266;
-  border-radius: 4px;
+.search-buttons {
+  display: flex;
+  gap: 12px;
 }
 
-.pagination :deep(.btn-prev:hover),
-.pagination :deep(.btn-next:hover) {
-  color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
+:deep(.el-button) {
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.pagination :deep(.el-pagination__sizes) {
-  margin-right: 16px;
+:deep(.el-button .el-icon) {
+  font-size: 14px;
 }
 
-.pagination :deep(.el-pagination__total) {
-  margin-right: 16px;
-  line-height: 32px;
-}
-
-.pagination :deep(.el-input__inner) {
-  height: 32px;
-  line-height: 32px;
-}
-
-.bill-records {
+/* 表格样式优化 */
+.records-table {
   background: #fff;
   padding: 20px;
   border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 :deep(.el-table) {
+  --el-table-header-bg-color: #f5f7fa;
   --el-table-border-color: #ebeef5;
-  --el-table-header-bg-color: #F5F7FA;
   border-radius: 4px;
-  border: 1px solid var(--el-table-border-color);
 }
 
 :deep(.el-table::before) {
@@ -456,21 +438,43 @@ const viewDetail = (record) => {
   display: none;
 }
 
-:deep(.el-table th.el-table__cell) {
-  background: var(--el-table-header-bg-color);
-}
-
 :deep(.el-table .cell) {
-  padding: 0;
-  white-space: nowrap;
+  padding: 8px;
+  line-height: 1.4;
 }
 
-:deep(.el-table__cell) {
-  padding: 4px 0;
+/* 分页样式优化 */
+.pagination-container {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
-  background-color: #f5f7fa;
+/* 标签页样式优化 */
+.tabs {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.tab-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.tab-item:hover {
+  background: #f0f2f5;
+}
+
+.tab-item.active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 500;
 }
 
 .amount {
@@ -507,35 +511,72 @@ const viewDetail = (record) => {
   color: #909399;
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #ebeef5;
-}
-
-:deep(.el-pagination) {
-  padding: 0;
-  font-weight: normal;
-}
-
-:deep(.el-pagination button) {
-  background-color: transparent;
-}
-
-:deep(.el-pagination .el-pager li) {
-  background-color: transparent;
-  border: none;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  color: var(--el-color-primary);
-  font-weight: bold;
-}
-
 .action-buttons {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+:deep(.el-button--small) {
+  padding: 5px 12px;
+  font-size: 12px;
+  height: 24px;
+  line-height: 1;
+}
+
+:deep(.el-button--small.is-link) {
+  padding: 5px 0;
+  height: auto;
+}
+
+:deep(.el-button--small.is-link:hover) {
+  color: var(--el-color-primary);
+  background: none;
+}
+
+:deep(.el-button--primary:not(.is-link)) {
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-hover-bg-color: var(--el-color-primary-light-3);
+  --el-button-hover-border-color: var(--el-color-primary-light-3);
+  --el-button-active-bg-color: var(--el-color-primary-dark-2);
+  --el-button-active-border-color: var(--el-color-primary-dark-2);
+}
+
+/* 修改操作列样式 */
+:deep(.operation-column) {
+  background-color: #fff !important;
+}
+
+:deep(.operation-column .cell) {
+  padding-right: 20px !important;
+}
+
+:deep(.el-table__fixed-right) {
+  height: 100% !important;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.05);
+}
+
+:deep(.el-table__fixed-right::before) {
+  display: none;
+}
+
+:deep(.el-table__fixed-right .el-table__fixed-header-wrapper) {
+  background-color: #F5F7FA;
+}
+
+/* 优化表格滚动条样式 */
+:deep(.el-table__body-wrapper::-webkit-scrollbar) {
+  width: 6px;
+  height: 6px;
+}
+
+:deep(.el-table__body-wrapper::-webkit-scrollbar-thumb) {
+  border-radius: 3px;
+  background-color: #ddd;
+}
+
+:deep(.el-table__body-wrapper::-webkit-scrollbar-track) {
+  background-color: #f5f5f5;
 }
 </style> 
