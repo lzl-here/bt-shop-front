@@ -181,6 +181,54 @@
 
           <!-- 订单管理面板 -->
           <div v-if="activeMenu === 'orders'" class="orders-panel">
+            <!-- 添加搜索表单 -->
+            <div class="search-form">
+              <el-form :inline="true" :model="orderSearchForm" size="default">
+                <div class="search-content">
+                  <div class="search-items">
+                    <el-form-item label="状态">
+                      <el-select v-model="orderSearchForm.status" placeholder="全部状态" clearable>
+                        <el-option label="待付款" value="pending_payment" />
+                        <el-option label="待发货" value="pending_ship" />
+                        <el-option label="已发货" value="shipped" />
+                        <el-option label="已完成" value="completed" />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="订单号">
+                      <el-input 
+                        v-model="orderSearchForm.orderNo" 
+                        placeholder="请输入订单号"
+                        clearable
+                        :input-style="{ textAlign: 'left' }"
+                      />
+                    </el-form-item>
+                    <el-form-item label="买家">
+                      <el-input 
+                        v-model="orderSearchForm.buyer" 
+                        placeholder="请输入买家名称"
+                        clearable
+                        :input-style="{ textAlign: 'left' }"
+                      />
+                    </el-form-item>
+                    <el-form-item label="支付方式">
+                      <el-select v-model="orderSearchForm.paymentMethod" placeholder="全部方式" clearable>
+                        <el-option label="支付宝" value="支付宝" />
+                        <el-option label="微信支付" value="微信支付" />
+                      </el-select>
+                    </el-form-item>
+                  </div>
+                  <div class="search-buttons">
+                    <el-button type="primary" @click="handleOrderSearch">
+                      <el-icon><Search /></el-icon>查询
+                    </el-button>
+                    <el-button @click="resetOrderSearch">
+                      <el-icon><RefreshRight /></el-icon>重置
+                    </el-button>
+                  </div>
+                </div>
+              </el-form>
+            </div>
+
             <el-table 
               :data="currentPageOrders" 
               style="width: 100%"
@@ -286,7 +334,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { DataLine, Goods, List, Setting, Plus, Money, Shop } from '@element-plus/icons-vue'
+import { DataLine, Goods, List, Setting, Plus, Money, Shop, Search, RefreshRight } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import BillRecords from './BillRecords.vue'
 import StoreSettings from './StoreSettings.vue'
@@ -451,15 +499,75 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const goToPage = ref('')
 
-// 计算总订单数
-const totalOrders = computed(() => orders.value.length)
-
-// 计算当前页的订单
+// 修改订单过滤逻辑
 const currentPageOrders = computed(() => {
+  let filtered = orders.value
+
+  // 根据搜索条件过滤
+  if (orderSearchForm.value.status) {
+    filtered = filtered.filter(order => order.status === orderSearchForm.value.status)
+  }
+  if (orderSearchForm.value.orderNo) {
+    filtered = filtered.filter(order => order.orderNumber.includes(orderSearchForm.value.orderNo))
+  }
+  if (orderSearchForm.value.buyer) {
+    filtered = filtered.filter(order => order.customerName.includes(orderSearchForm.value.buyer))
+  }
+  if (orderSearchForm.value.paymentMethod) {
+    filtered = filtered.filter(order => order.paymentMethod === orderSearchForm.value.paymentMethod)
+  }
+  
+  // 计算分页
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
-  return orders.value.slice(start, end)
+  return filtered.slice(start, end)
 })
+
+// 修改总订单数计算逻辑
+const totalOrders = computed(() => {
+  let filtered = orders.value
+  
+  // 根据搜索条件过滤
+  if (orderSearchForm.value.status) {
+    filtered = filtered.filter(order => order.status === orderSearchForm.value.status)
+  }
+  if (orderSearchForm.value.orderNo) {
+    filtered = filtered.filter(order => order.orderNumber.includes(orderSearchForm.value.orderNo))
+  }
+  if (orderSearchForm.value.buyer) {
+    filtered = filtered.filter(order => order.customerName.includes(orderSearchForm.value.buyer))
+  }
+  if (orderSearchForm.value.paymentMethod) {
+    filtered = filtered.filter(order => order.paymentMethod === orderSearchForm.value.paymentMethod)
+  }
+  
+  return filtered.length
+})
+
+// 订单搜索表单
+const orderSearchForm = ref({
+  status: '',
+  orderNo: '',
+  buyer: '',
+  paymentMethod: ''
+})
+
+// 处理订单搜索
+const handleOrderSearch = () => {
+  currentPage.value = 1 // 重置页码
+  fetchOrders()
+}
+
+// 重置订单搜索
+const resetOrderSearch = () => {
+  orderSearchForm.value = {
+    status: '',
+    orderNo: '',
+    buyer: '',
+    paymentMethod: ''
+  }
+  handleOrderSearch()
+}
 
 // 页码改变处理
 const handleCurrentChange = (val) => {
@@ -810,5 +918,73 @@ onMounted(async () => {
 .orders-panel :deep(.el-tag--info) {
   background-color: #f4f4f5;
   color: #909399;
+}
+
+.search-form {
+  background: #fff;
+  padding: 24px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.search-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.search-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  flex: 1;
+}
+
+:deep(.el-form-item) {
+  margin: 0;
+  width: 220px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: normal;
+  color: #606266;
+  padding-right: 12px;
+  width: 70px !important;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select) {
+  width: 150px;
+}
+
+.search-buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: 20px;
+  padding-top: 1px;
+}
+
+:deep(.el-button) {
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+:deep(.el-button .el-icon) {
+  font-size: 14px;
+}
+
+:deep(.el-input__wrapper) {
+  padding-left: 11px !important;
+}
+
+:deep(.el-input__inner) {
+  text-align: left !important;
+}
+
+:deep(.el-input__inner::placeholder) {
+  text-align: left;
 }
 </style> 

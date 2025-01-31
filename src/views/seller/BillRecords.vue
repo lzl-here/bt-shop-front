@@ -3,63 +3,46 @@
     <!-- 搜索条件 -->
     <div class="search-form">
       <el-form :inline="true" :model="searchForm" size="default">
-        <el-row :gutter="20">
-          <el-col :span="6">
+        <div class="search-content">
+          <div class="search-items">
             <el-form-item label="状态">
               <el-select v-model="searchForm.status" placeholder="全部状态" clearable>
                 <el-option label="待确认" value="pending_confirm" />
                 <el-option label="已完成" value="completed" />
               </el-select>
             </el-form-item>
-          </el-col>
-          <el-col :span="6">
             <el-form-item label="结算单号">
               <el-input 
                 v-model="searchForm.tradeNo" 
                 placeholder="请输入结算单号"
                 clearable
+                :input-style="{ textAlign: 'left' }"
               />
             </el-form-item>
-          </el-col>
-          <el-col :span="6">
-            <el-form-item label="订单号">
-              <el-input 
-                v-model="searchForm.orderNo" 
-                placeholder="请输入订单号"
-                clearable
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="6">
             <el-form-item label="买家">
               <el-input 
                 v-model="searchForm.buyer" 
                 placeholder="请输入买家名称"
                 clearable
+                :input-style="{ textAlign: 'left' }"
               />
             </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="6">
             <el-form-item label="支付方式">
               <el-select v-model="searchForm.paymentMethod" placeholder="全部方式" clearable>
                 <el-option label="支付宝" value="支付宝" />
                 <el-option label="微信支付" value="微信支付" />
               </el-select>
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item class="search-buttons">
-              <el-button type="primary" @click="handleSearch">
-                <el-icon><Search /></el-icon>查询
-              </el-button>
-              <el-button @click="resetSearch">
-                <el-icon><RefreshRight /></el-icon>重置
-              </el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
+          </div>
+          <div class="search-buttons">
+            <el-button type="primary" @click="handleSearch">
+              <el-icon><Search /></el-icon>查询
+            </el-button>
+            <el-button @click="resetSearch">
+              <el-icon><RefreshRight /></el-icon>重置
+            </el-button>
+          </div>
+        </div>
       </el-form>
     </div>
 
@@ -148,17 +131,36 @@
     </div>
 
     <div class="pagination-container">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[12, 24, 36]"
-        layout="total, sizes, prev, pager, next"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :pager-count="5"
-        background
-      />
+      <div class="pagination-left">
+        Total {{ total }}
+        <el-select v-model="pageSize" class="page-size-select">
+          <el-option
+            v-for="size in [10, 20, 30, 50]"
+            :key="size"
+            :label="`${size}/page`"
+            :value="size"
+          />
+        </el-select>
+      </div>
+      <div class="pagination-center">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :total="total"
+          :page-size="pageSize"
+          layout="prev, pager, next"
+          @current-change="handleCurrentChange"
+          :pager-count="5"
+        />
+      </div>
+      <div class="pagination-right">
+        <span>前往</span>
+        <el-input
+          v-model="goToPage"
+          class="go-to-input"
+          @keyup.enter="handleGoToPage"
+        />
+        <span>页</span>
+      </div>
     </div>
   </div>
 </template>
@@ -174,6 +176,9 @@ const currentPage = ref(1)
 const pageSize = ref(12) // 默认每页12条
 const total = ref(0)
 const router = useRouter()
+
+// 添加跳转页码
+const goToPage = ref('')
 
 // 订单状态枚举
 const OrderStatus = {
@@ -233,7 +238,6 @@ const columns = [
 const searchForm = ref({
   status: '',
   tradeNo: '',
-  orderNo: '',
   buyer: '',
   paymentMethod: ''
 })
@@ -249,7 +253,6 @@ const resetSearch = () => {
   searchForm.value = {
     status: '',
     tradeNo: '',
-    orderNo: '',
     buyer: '',
     paymentMethod: ''
   }
@@ -266,9 +269,6 @@ const currentPageRecords = computed(() => {
   }
   if (searchForm.value.tradeNo) {
     filtered = filtered.filter(record => record.tradeNo.includes(searchForm.value.tradeNo))
-  }
-  if (searchForm.value.orderNo) {
-    filtered = filtered.filter(record => record.orderNo.includes(searchForm.value.orderNo))
   }
   if (searchForm.value.buyer) {
     filtered = filtered.filter(record => record.buyer?.includes(searchForm.value.buyer))
@@ -357,6 +357,16 @@ const handleCurrentChange = (val) => {
 const viewDetail = (record) => {
   router.push(`/seller/bill/${record.tradeNo}`)
 }
+
+// 处理跳转页面
+const handleGoToPage = () => {
+  const page = parseInt(goToPage.value)
+  if (page && page > 0 && page <= Math.ceil(total.value / pageSize.value)) {
+    currentPage.value = page
+    fetchRecords()
+  }
+  goToPage.value = ''
+}
 </script>
 
 <style scoped>
@@ -374,14 +384,22 @@ const viewDetail = (record) => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-:deep(.el-form--inline) {
-  display: block;
+.search-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.search-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  flex: 1;
 }
 
 :deep(.el-form-item) {
-  margin-bottom: 18px;
-  margin-right: 0;
-  width: 100%;
+  margin: 0;
+  width: 220px;
 }
 
 :deep(.el-form-item__label) {
@@ -393,16 +411,14 @@ const viewDetail = (record) => {
 
 :deep(.el-input__wrapper),
 :deep(.el-select) {
-  width: 100%;
-}
-
-:deep(.el-select .el-input) {
-  width: 100%;
+  width: 150px;
 }
 
 .search-buttons {
   display: flex;
   gap: 12px;
+  margin-left: 20px;
+  padding-top: 1px;
 }
 
 :deep(.el-button) {
@@ -445,11 +461,75 @@ const viewDetail = (record) => {
 
 /* 分页样式优化 */
 .pagination-container {
-  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 16px 20px;
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #606266;
+  font-size: 13px;
+}
+
+.page-size-select {
+  width: 110px;
+}
+
+.pagination-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #606266;
+  font-size: 13px;
+}
+
+.go-to-input {
+  width: 50px;
+}
+
+:deep(.el-input__wrapper) {
+  padding: 0 8px;
+}
+
+:deep(.el-input__inner) {
+  text-align: center;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  box-shadow: none;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+}
+
+:deep(.el-pagination .el-pager li) {
+  border: none;
+  background: none;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  color: #409eff;
+  font-weight: bold;
+}
+
+:deep(.el-pagination button:disabled) {
+  background: none;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-button-disabled-bg-color: transparent;
 }
 
 /* 标签页样式优化 */
@@ -578,5 +658,17 @@ const viewDetail = (record) => {
 
 :deep(.el-table__body-wrapper::-webkit-scrollbar-track) {
   background-color: #f5f5f5;
+}
+
+:deep(.el-input__wrapper) {
+  padding-left: 11px !important;
+}
+
+:deep(.el-input__inner) {
+  text-align: left !important;
+}
+
+:deep(.el-input__inner::placeholder) {
+  text-align: left;
 }
 </style> 
