@@ -41,9 +41,16 @@
         <!-- 店铺订单列表 -->
         <div class="store-orders">
           <div v-for="order in trade.orders" :key="order.id" class="store-order">
+            <!-- 订单信息标题 -->
+            <div class="order-info-title">
+              <span>订单信息</span>
+            </div>
+
+            <!-- 店铺信息 -->
             <div class="store-info">
               <el-icon><Shop /></el-icon>
               <span class="store-name">{{ order.storeName }}</span>
+              <span class="order-number">订单号：{{ order.id }}</span>
             </div>
 
             <div class="product-list">
@@ -51,21 +58,14 @@
                 v-for="product in order.products" 
                 :key="product.id" 
                 class="product-item"
-                @click="viewTradeDetail(trade.id)"
+                @click="viewOrderDetail(order.id)"
               >
                 <img :src="product.image" :alt="product.name">
                 <div class="product-info">
                   <div class="product-name">{{ product.name }}</div>
-                  <div class="product-specs">
-                    <el-tag size="small" type="info">{{ product.specs.color }}</el-tag>
-                    <el-tag size="small" type="info">{{ product.specs.memory }}</el-tag>
-                    <el-tag size="small" type="info">{{ product.specs.storage }}</el-tag>
-                  </div>
-                  <div class="product-price-info">
-                    <span class="price">¥{{ product.price.toFixed(2) }}</span>
-                    <span class="quantity">x{{ product.quantity }}</span>
-                  </div>
+                  <div class="product-price">¥{{ product.price.toFixed(2) }}</div>
                 </div>
+                <div class="product-quantity">x{{ product.quantity }}</div>
               </div>
             </div>
 
@@ -296,7 +296,12 @@ const cancelTrade = (trade) => {
   })
 }
 
-// 查看交易详情
+// 查看订单详情
+const viewOrderDetail = (orderId) => {
+  router.push(`/user/orders/${orderId}`)
+}
+
+// 查看交易详情（保留此功能用于交易详情按钮）
 const viewTradeDetail = (tradeId) => {
   router.push(`/user/trades/${tradeId}`)
 }
@@ -402,12 +407,18 @@ const handleGoToPage = () => {
 .store-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  padding-left: 20px;
 }
 
 .store-name {
   font-weight: 500;
+}
+
+.order-number {
+  color: #909399;
 }
 
 .product-list {
@@ -416,8 +427,9 @@ const handleGoToPage = () => {
 
 .product-item {
   display: flex;
+  align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 8px 0;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -432,8 +444,8 @@ const handleGoToPage = () => {
 }
 
 .product-item img {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   object-fit: cover;
   border-radius: 4px;
 }
@@ -442,49 +454,23 @@ const handleGoToPage = () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 80px; /* 与图片等高 */
+  gap: 4px;
 }
 
 .product-name {
   font-size: 14px;
-  color: #333;
-  margin-bottom: 4px;
-  /* 文本超出两行显示省略号 */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #303133;
 }
 
-.product-specs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.product-specs :deep(.el-tag) {
-  height: 20px;
-  padding: 0 6px;
-  font-size: 12px;
-}
-
-.product-price-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price {
-  color: #f56c6c;
+.product-price {
   font-size: 14px;
-  font-weight: 500;
+  color: #f56c6c;
 }
 
-.quantity {
+.product-quantity {
   color: #909399;
-  font-size: 13px;
+  font-size: 14px;
+  margin-right: 20px;
 }
 
 .order-footer {
@@ -567,5 +553,26 @@ const handleGoToPage = () => {
 
 :deep(.el-input__inner) {
   text-align: center;
+}
+
+.order-info-title {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.order-info-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 14px;
+  background-color: var(--el-color-primary);
+  border-radius: 2px;
 }
 </style> 
