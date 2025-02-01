@@ -145,72 +145,8 @@
               </div>
             </template>
           </div>
-
-          <!-- 快捷功能入口 -->
-          <div class="quick-links">
-            <div class="quick-link-row">
-              <router-link to="/user/favorites">
-                <el-icon><Star /></el-icon>
-                <span>宝贝收藏</span>
-              </router-link>
-              <router-link to="/user/store">
-                <el-icon><Shop /></el-icon>
-                <span>收藏店铺</span>
-              </router-link>
-            </div>
-            <div class="quick-link-row">
-              <router-link to="/cart">
-                <el-icon><ShoppingCart /></el-icon>
-                <span>购物车</span>
-              </router-link>
-              <router-link to="/user/history">
-                <el-icon><Timer /></el-icon>
-                <span>我的足迹</span>
-              </router-link>
-            </div>
-            <div class="quick-link-row">
-              <router-link to="/help">
-                <el-icon><QuestionFilled /></el-icon>
-                <span>帮助中心</span>
-              </router-link>
-              <router-link to="/feedback">
-                <el-icon><ChatDotRound /></el-icon>
-                <span>我的评论</span>
-              </router-link>
-            </div>
-            <div class="quick-link-row">
-              <router-link to="/address">
-                <el-icon><Location /></el-icon>
-                <span>收货地址</span>
-              </router-link>
-              <router-link to="/messages">
-                <el-icon><Bell /></el-icon>
-                <span>我的消息</span>
-              </router-link>
-            </div>
-          </div>
         </div>
       </div>
-    </div>
-
-    <!-- 导航栏部分 -->
-    <div class="nav-links">
-      <router-link to="/" class="nav-link">
-        <el-icon><HomeFilled /></el-icon>
-        <span>首页</span>
-      </router-link>
-      <router-link to="/products" class="nav-link">
-        <el-icon><Search /></el-icon>
-        <span>搜索商品</span>
-      </router-link>
-      <router-link to="/store/search" class="nav-link">
-        <el-icon><Shop /></el-icon>
-        <span>搜索店铺</span>
-      </router-link>
-      <router-link v-if="userStore.hasStore" to="/seller" class="nav-link">
-        <el-icon><Shop /></el-icon>
-        <span>我的店铺</span>
-      </router-link>
     </div>
   </div>
 </template>
@@ -219,7 +155,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { ArrowRight, ShoppingBag, Ticket, Shop, Star, ShoppingCart, Timer, QuestionFilled, ChatDotRound, Location, Bell, Folder, HomeFilled, Search } from '@element-plus/icons-vue'
+import { 
+  ArrowRight, 
+  ShoppingBag, 
+  Ticket, 
+  Shop, 
+  Folder
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -712,40 +654,6 @@ const handleMouseLeave = () => {
   justify-content: center;
 }
 
-.quick-links {
-  background: #fff;
-  border-radius: 8px;
-  padding: 15px;
-}
-
-.quick-link-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.quick-link-row:last-child {
-  margin-bottom: 0;
-}
-
-.quick-link-row a {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 10px;
-  color: #666;
-  text-decoration: none;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.quick-link-row a:hover {
-  color: var(--el-color-primary);
-  background: #f5f7fa;
-}
-
 @media screen and (max-width: 1200px) {
   .main-layout {
     grid-template-columns: 200px 1fr;  /* 隐藏右侧边栏 */
@@ -871,32 +779,5 @@ const handleMouseLeave = () => {
   .price {
     font-size: 16px;
   }
-}
-
-/* 导航栏部分 */
-.nav-links {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 10px;
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.nav-link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 10px;
-  color: #666;
-  text-decoration: none;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.nav-link:hover {
-  color: var(--el-color-primary);
-  background: #f5f7fa;
 }
 </style> 
