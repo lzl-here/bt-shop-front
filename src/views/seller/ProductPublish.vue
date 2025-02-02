@@ -104,42 +104,45 @@
             <div class="specs-section">
               <div class="specs-header">
                 <span class="section-title">规格项</span>
-                <el-button type="primary" @click="addSpecItem">添加规格项</el-button>
+                <el-button type="primary" @click="addNewSpecInput">添加规格项</el-button>
               </div>
 
               <div class="specs-content">
-                <div class="specs-input">
+                <!-- 规格输入列表 -->
+                <div v-for="(spec, index) in specInputs" :key="index" class="spec-input-item">
                   <div class="spec-key-value">
                     <el-input
-                      v-model="currentSpec.name"
+                      v-model="spec.name"
                       placeholder="规格名称（如：内存）"
                       class="spec-key-input"
+                      :disabled="spec.isExisting"
                     />
                     <el-input
-                      v-model="currentSpec.value"
+                      v-model="spec.value"
                       placeholder="规格值（如：256GB）"
                       class="spec-value-input"
-                      @keyup.enter="addSpecValue"
+                      @keyup.enter="confirmSpec(index)"
                     >
                       <template #append>
-                        <el-button @click="addSpecValue">添加规格值</el-button>
+                        <el-button @click="confirmSpec(index)">确定</el-button>
                       </template>
                     </el-input>
+                    <el-button type="danger" link @click="removeSpecInput(index)">删除</el-button>
                   </div>
                 </div>
 
-                <!-- 显示已添加的规格项及其值 -->
-                <div v-for="(spec, key) in productForm.specs" :key="key" class="spec-group">
+                <!-- 已添加的规格列表 -->
+                <div v-for="(values, name) in productForm.specs" :key="name" class="spec-group">
                   <div class="spec-group-header">
-                    <span class="spec-name">{{ key }}</span>
-                    <el-button type="danger" link @click="removeSpecItem(key)">删除</el-button>
+                    <span class="spec-name">{{ name }}</span>
+                    <el-button type="danger" link @click="removeSpecItem(name)">删除</el-button>
                   </div>
                   <div class="spec-values">
                     <el-tag
-                      v-for="value in spec"
+                      v-for="value in values"
                       :key="value"
                       closable
-                      @close="removeSpecValue(key, value)"
+                      @close="removeSpecValue(name, value)"
                     >
                       {{ value }}
                     </el-tag>
@@ -270,12 +273,6 @@ const brands = [
   { id: 7, name: '三星' },
   { id: 8, name: '荣耀' }
 ]
-
-// 当前正在编辑的规格
-const currentSpec = ref({
-  name: '',
-  value: ''
-})
 
 // 商品表单
 const productForm = ref({
@@ -461,25 +458,75 @@ const formatSpecCombination = (specs) => {
     .join(', ')
 }
 
-// 添加规格值
-const addSpecValue = () => {
-  const { name, value } = currentSpec.value
-  if (!name || !value) {
+// 规格输入列表
+const specInputs = ref([])
+
+// 添加新的规格输入框
+const addNewSpecInput = () => {
+  specInputs.value.push({
+    name: '',
+    value: '',
+    isExisting: false
+  })
+}
+
+// 确认添加规格
+const confirmSpec = (index) => {
+  const spec = specInputs.value[index]
+  if (!spec.name || !spec.value) {
     ElMessage.warning('请输入规格名称和规格值')
     return
   }
 
-  if (!productForm.value.specs[name]) {
-    productForm.value.specs[name] = []
+  if (!productForm.value.specs[spec.name]) {
+    productForm.value.specs[spec.name] = []
   }
 
-  if (productForm.value.specs[name].includes(value)) {
+  if (productForm.value.specs[spec.name].includes(spec.value)) {
     ElMessage.warning('该规格值已存在')
     return
   }
 
-  productForm.value.specs[name].push(value)
-  currentSpec.value.value = '' // 只清空规格值，保留规格名称
+  productForm.value.specs[spec.name].push(spec.value)
+  
+  // 保留输入框，但清空值并禁用规格名称输入
+  spec.value = ''
+  spec.isExisting = true
+  
+  ElMessage.success('添加规格值成功')
+}
+
+// 移除规格输入框
+const removeSpecInput = (index) => {
+  const spec = specInputs.value[index]
+  // 如果是已存在规格的输入框，检查是否还有其他值
+  if (spec.isExisting && productForm.value.specs[spec.name]?.length > 0) {
+    // 只移除输入框，不删除规格项
+    specInputs.value.splice(index, 1)
+  } else {
+    // 如果是新规格或最后一个值，删除整个规格项
+    if (spec.isExisting) {
+      delete productForm.value.specs[spec.name]
+    }
+    specInputs.value.splice(index, 1)
+  }
+}
+
+// 修改重置表单的逻辑
+const publishAnother = () => {
+  currentStep.value = 0
+  selectedMainCategory.value = null
+  selectedSubCategory.value = null
+  selectedLeafCategory.value = null
+  specInputs.value = []
+  productForm.value = {
+    name: '',
+    brand: '',
+    price: 0,
+    description: '',
+    images: [],
+    specs: {}
+  }
 }
 
 // 移除规格项
@@ -496,23 +543,6 @@ const removeSpecValue = (specName, value) => {
     if (values.length === 0) {
       delete productForm.value.specs[specName]
     }
-  }
-}
-
-// 修改重置表单的逻辑
-const publishAnother = () => {
-  currentStep.value = 0
-  selectedMainCategory.value = null
-  selectedSubCategory.value = null
-  selectedLeafCategory.value = null
-  currentSpec.value = { name: '', value: '' }
-  productForm.value = {
-    name: '',
-    brand: '',
-    price: 0,
-    description: '',
-    images: [],
-    specs: {}
   }
 }
 </script>
@@ -720,5 +750,37 @@ const publishAnother = () => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.spec-input-item {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.spec-key-value {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.spec-key-input {
+  width: 200px;
+}
+
+.spec-value-input {
+  flex: 1;
 }
 </style> 
