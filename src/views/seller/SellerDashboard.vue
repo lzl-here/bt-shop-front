@@ -105,8 +105,9 @@
           <!-- 商品管理 -->
           <div v-if="activeMenu === 'products'" class="products-panel">
             <div class="panel-header">
-              <el-button type="primary" @click="addProduct">
-                <el-icon><Plus /></el-icon>添加商品
+              <el-button type="primary" @click="goToProductPublish">
+                <el-icon><Plus /></el-icon>
+                添加商品
               </el-button>
             </div>
             <el-table :data="currentPageProducts" style="width: 100%">
@@ -652,6 +653,11 @@ const goToApply = () => {
   router.push('/seller/apply')
 }
 
+// 跳转到商品发布页面
+const goToProductPublish = () => {
+  router.push('/seller/product/publish')
+}
+
 onMounted(async () => {
   // TODO: 获取店铺信息
   // const response = await getStoreInfo()
@@ -986,5 +992,19 @@ onMounted(async () => {
 
 :deep(.el-input__inner::placeholder) {
   text-align: left;
+}
+
+.dashboard-header {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.product-list {
+  background: #fff;
+  border-radius: 4px;
+  padding: 20px;
 }
 </style> 

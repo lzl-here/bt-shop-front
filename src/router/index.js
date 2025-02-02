@@ -151,6 +151,12 @@ const routes = [
     path: '/store/search',
     name: 'StoreSearch',
     component: () => import('../views/store/StoreSearch.vue')
+  },
+  {
+    path: '/seller/product/publish',
+    name: 'ProductPublish',
+    component: () => import('../views/seller/ProductPublish.vue'),
+    meta: { requiresAuth: true, requiresStore: true }
   }
 ]
 
@@ -167,7 +173,6 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
   } else if (to.meta.requiresStore && !storeStore.hasStore) {
-    // 如果需要店铺权限但没有店铺，重定向到入驻页面
     if (to.path !== '/seller/apply') {
       next('/seller/apply')
     } else {
