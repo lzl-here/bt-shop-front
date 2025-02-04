@@ -7,11 +7,21 @@ export const getKeywordDownList = (prefix) => {
 
 // 根据关键词和搜索参数进行搜索
 export const searchSpuList = (params) => {
-  return axios.post('/goods/search_spu_list', params)
+  return axios.post('/goods/search_spu_list', {
+    page_size: params.pageSize,
+    page_no: params.pageNo,
+    keyword: params.keyword,
+    category_ids: params.categoryIds,
+    brand_ids: params.brandIds,
+    order_by: params.orderBy
+  })
 }
 
 // 获取单个商品详情
 export const getGoodsDetail = (spuId) => {
+  if (typeof spuId !== 'number' || isNaN(spuId)) {
+    return Promise.reject(new Error('Invalid spu_id'))
+  }
   return axios.post('/goods/get_goods_detail', { spu_id: spuId })
 }
 

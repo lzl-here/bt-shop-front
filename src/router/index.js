@@ -11,6 +11,7 @@ import UserAddress from '../views/user/Address.vue'
 import UserSecurity from '../views/user/Security.vue'
 import ProductSearch from '../views/product/ProductSearch.vue'  
 import SellerDashboard from '../views/seller/SellerDashboard.vue'
+import ProductDetail from '../views/product/ProductDetail.vue'
 
 const routes = [
   {
@@ -26,7 +27,7 @@ const routes = [
   {
     path: '/products/:id',
     name: 'ProductDetail',
-    component: () => import('../views/ProductDetail.vue')
+    component: () => import('../views/product/ProductDetail.vue')
   },
   {
     path: '/categories',
@@ -94,7 +95,14 @@ const routes = [
     path: '/checkout',
     name: 'Checkout',
     component: () => import('../views/trades/Checkout.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: (to, from, next) => {
+      if (!to.query.trade_id) {
+        next('/')
+      } else {
+        next()
+      }
+    }
   },
   {
     path: '/seller',
@@ -157,6 +165,11 @@ const routes = [
     name: 'ProductPublish',
     component: () => import('../views/seller/ProductPublish.vue'),
     meta: { requiresAuth: true, requiresStore: true }
+  },
+  {
+    path: '/product/:id',
+    name: 'ProductDetail',
+    component: ProductDetail
   }
 ]
 

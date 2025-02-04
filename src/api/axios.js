@@ -1,46 +1,56 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
-const instance = axios.create({
-  baseURL: 'http://localhost:8081', // 后端网关地址
-  timeout: 10000, // 请求超时时间
-  headers: {
-    'Content-Type': 'application/json'
-  },
+// 创建 axios 实例
+const request = axios.create({
+  baseURL: 'http://localhost:8081', // 修改为实际的后端 API 地址
+  timeout: 15000,
+  withCredentials: true // 允许跨域请求携带凭证
 })
 
 // 请求拦截器
-instance.interceptors.request.use(
+request.interceptors.request.use(
   config => {
-    // 在请求发送之前做一些处理，比如添加 token
+    // 添加跨域请求头
+    config.headers['Access-Control-Allow-Origin'] = '*'
+    config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    config.headers['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Accept, Authorization'
+    
+    // 从 localStorage 获取 token
     const token = localStorage.getItem('token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers['Authorization'] = `Bearer ${token}`
     }
     return config
   },
   error => {
+    console.error('Request error:', error)
     return Promise.reject(error)
   }
 )
 
 // 响应拦截器
-instance.interceptors.response.use(
+request.interceptors.response.use(
   response => {
-    return response.data
+    const res = response.data
+    
+    // 如果响应成功但业务状态码不为 1
+    if (res.code !== 1) {
+      ElMessage.error(res.msg || '请求失败')
+      return Promise.reject(new Error(res.msg || '请求失败'))
+    }
+    return res
   },
   error => {
-    if (error.response) {
-      // 处理 HTTP 错误状态
-      console.error('Response error:', error.response.status, error.response.data)
-    } else if (error.request) {
-      // 请求发出但没有收到响应
-      console.error('No response received:', error.request)
+    console.error('Response error:', error)
+    // 处理 CORS 错误
+    if (error.message.includes('Network Error') || error.message.includes('CORS')) {
+      ElMessage.error('网络错误，请确保后端服务正常运行并已配置跨域')
     } else {
-      // 请求配置出错
-      console.error('Request error:', error.message)
+      ElMessage.error(error.message || '请求失败')
     }
     return Promise.reject(error)
   }
 )
 
-export default instance 
+export default request 

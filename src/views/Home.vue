@@ -125,7 +125,18 @@
                 @click="viewProduct(product.id)"
               >
                 <div class="product-image">
-                  <img :src="product.image" :alt="product.name">
+                  <el-image 
+                    :src="product.image" 
+                    fit="cover"
+                    class="product-image"
+                  >
+                    <template #error>
+                      <div class="image-error">
+                        <el-icon><Picture /></el-icon>
+                        <div class="text">图片加载失败</div>
+                      </div>
+                    </template>
+                  </el-image>
                   <div class="product-tags">
                     <el-tag 
                       v-for="tag in product.tags" 
@@ -189,6 +200,7 @@ import {
   Folder,
   Picture
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -543,9 +555,10 @@ const viewProduct = (productId) => {
 }
 
 .product-image {
-  position: relative;
   width: 100%;
-  padding-bottom: 100%; /* 1:1 宽高比 */
+  height: 200px;
+  background: #f8f9fa;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -672,5 +685,24 @@ const viewProduct = (productId) => {
 .brand-name {
   font-size: 14px;
   color: #606266;
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #909399;
+  background: #f8f9fa;
+}
+
+.image-error .el-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.image-error .text {
+  font-size: 14px;
 }
 </style> 

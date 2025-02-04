@@ -79,31 +79,61 @@
 
       <!-- 右侧商品列表区域 -->
       <div class="product-section">
-        <!-- 搜索框 -->
-        <div class="search-box">
-          <el-autocomplete
-            v-model="searchQuery"
-            :fetch-suggestions="querySearch"
-            :trigger-on-focus="true"
-            placeholder="搜索商品"
-            clearable
-            @select="handleSelect"
-            @keyup.enter="handleSearch"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-            <template #default="{ item }">
-              <div class="suggestion-item">
-                {{ item.value }}
-              </div>
-            </template>
-            <template #append>
-              <el-button @click="handleSearch">
-                搜索
-              </el-button>
-            </template>
-          </el-autocomplete>
+        <!-- 搜索框和按钮 -->
+        <div class="search-header">
+          <div class="search-box">
+            <el-autocomplete
+              v-model="searchQuery"
+              :fetch-suggestions="querySearch"
+              :trigger-on-focus="true"
+              placeholder="搜索商品"
+              clearable
+              @select="handleSelect"
+              @keyup.enter="handleSearch"
+              class="search-input"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+              <template #default="{ item }">
+                <div class="suggestion-item">
+                  {{ item.value }}
+                </div>
+              </template>
+            </el-autocomplete>
+            <el-button type="primary" @click="handleSearch" class="search-button">
+              搜索
+            </el-button>
+          </div>
+
+          <!-- 已选择的筛选条件 -->
+          <div v-if="selectedCategory || selectedBrand" class="selected-filters">
+            <div class="filter-tags">
+              <el-tag 
+                v-if="selectedCategory" 
+                closable
+                @close="clearCategory"
+                class="filter-tag"
+              >
+                分类：{{ getSelectedCategoryName() }}
+              </el-tag>
+              <el-tag 
+                v-if="selectedBrand" 
+                closable
+                @close="clearBrand"
+                class="filter-tag"
+              >
+                品牌：{{ getSelectedBrandName() }}
+              </el-tag>
+            </div>
+            <el-button 
+              type="text" 
+              @click="clearAllFilters"
+              class="clear-all"
+            >
+              清除全部
+            </el-button>
+          </div>
         </div>
 
         <!-- 排序工具栏 -->
@@ -118,7 +148,35 @@
 
         <!-- 商品列表 -->
         <div class="product-list">
-          <!-- 商品列表内容 -->
+          <div v-if="products.length > 0" class="product-grid">
+            <router-link 
+              v-for="product in products" 
+              :key="product.id" 
+              :to="`/product/${product.id}`"
+              class="product-card"
+            >
+              <div class="product-image">
+                <el-image 
+                  :src="product.spu_img_url" 
+                  fit="cover"
+                  class="product-image"
+                >
+                  <template #error>
+                    <div class="image-error">
+                      <el-icon><Picture /></el-icon>
+                      <div class="text">图片加载失败</div>
+                    </div>
+                  </template>
+                </el-image>
+              </div>
+              <div class="product-info">
+                <h3 class="product-name">{{ product.spu_name }}</h3>
+                <p class="product-desc">{{ product.spu_desc }}</p>
+                <div class="product-price">¥{{ product.spu_price }}</div>
+              </div>
+            </router-link>
+          </div>
+          <el-empty v-else description="暂无商品" />
         </div>
 
         <!-- 分页 -->
@@ -140,8 +198,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getCategoryList, getBrandList, getKeywordDownList } from '../../api/goodsApi'
+import { getCategoryList, getBrandList, searchSpuList, getKeywordDownList } from '../../api/goodsApi'
 import { Search, Folder, Picture, ArrowRight } from '@element-plus/icons-vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 // 数据
 const categories = ref([])
@@ -154,6 +215,7 @@ const currentPage = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
 const hoveredCategory = ref(null)
+const products = ref([])
 
 // 获取分类和品牌数据
 const fetchData = async () => {
@@ -174,26 +236,51 @@ const fetchData = async () => {
   }
 }
 
-// 选择分类
-const selectCategory = (categoryId) => {
-  selectedCategory.value = categoryId
-  handleSearch()
+// 获取商品列表
+const fetchProducts = async () => {
+  try {
+    const params = {
+      pageSize: pageSize.value,
+      pageNo: currentPage.value,
+      keyword: searchQuery.value,
+      categoryIds: selectedCategory.value ? [selectedCategory.value] : [],
+      brandIds: selectedBrand.value ? [selectedBrand.value] : [],
+      orderBy: sortBy.value
+    }
+
+    const response = await searchSpuList(params)
+    if (response.code === 1) {
+      products.value = response.data.spu_list || []
+      total.value = response.data.count || 0
+    }
+  } catch (error) {
+    console.error('Failed to fetch products:', error)
+  }
 }
 
-// 选择品牌
-const selectBrand = (brandId) => {
-  selectedBrand.value = brandId
-  handleSearch()
-}
-
-// 搜索处理
+// 处理搜索
 const handleSearch = () => {
   currentPage.value = 1
   fetchProducts()
 }
 
-// 排序处理
+// 处理排序
 const handleSort = () => {
+  currentPage.value = 1
+  fetchProducts()
+}
+
+// 选择分类
+const selectCategory = (categoryId) => {
+  selectedCategory.value = categoryId
+  currentPage.value = 1
+  fetchProducts()
+}
+
+// 选择品牌
+const selectBrand = (brandId) => {
+  selectedBrand.value = brandId
+  currentPage.value = 1
   fetchProducts()
 }
 
@@ -208,11 +295,6 @@ const handleSizeChange = (size) => {
   pageSize.value = size
   currentPage.value = 1
   fetchProducts()
-}
-
-// 获取商品列表
-const fetchProducts = async () => {
-  // TODO: 实现商品搜索逻辑
 }
 
 const handleCategoryHover = (category) => {
@@ -253,8 +335,70 @@ const handleSelect = (item) => {
   handleSearch()
 }
 
+// 获取选中的分类名称
+const getSelectedCategoryName = () => {
+  if (!selectedCategory.value) return ''
+  
+  // 遍历所有分类查找匹配的名称
+  for (const category of categories.value) {
+    // 检查一级分类
+    if (category.category_id === selectedCategory.value) {
+      return category.category_name
+    }
+    // 检查二级分类
+    if (category.children) {
+      for (const subCategory of category.children) {
+        if (subCategory.category_id === selectedCategory.value) {
+          return subCategory.category_name
+        }
+        // 检查三级分类
+        if (subCategory.children) {
+          for (const thirdCategory of subCategory.children) {
+            if (thirdCategory.category_id === selectedCategory.value) {
+              return thirdCategory.category_name
+            }
+          }
+        }
+      }
+    }
+  }
+  return ''
+}
+
+// 获取选中的品牌名称
+const getSelectedBrandName = () => {
+  if (!selectedBrand.value) return ''
+  const brand = brands.value.find(b => b.brand_id === selectedBrand.value)
+  return brand ? brand.brand_name : ''
+}
+
+// 清除分类筛选
+const clearCategory = () => {
+  selectedCategory.value = null
+  fetchProducts()
+}
+
+// 清除品牌筛选
+const clearBrand = () => {
+  selectedBrand.value = null
+  fetchProducts()
+}
+
+// 清除所有筛选
+const clearAllFilters = () => {
+  selectedCategory.value = null
+  selectedBrand.value = null
+  fetchProducts()
+}
+
 onMounted(() => {
   fetchData()
+  fetchProducts()
+
+  // 如果有搜索参数，执行搜索
+  if (route.query.keyword) {
+    handleSearch()
+  }
 })
 </script>
 
@@ -329,16 +473,31 @@ onMounted(() => {
   flex: 1;
 }
 
-.search-box {
-  margin-bottom: 16px;
+.search-header {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
 }
 
-.search-box :deep(.el-input-group__prepend) {
-  background-color: #fff;
+.search-box {
+  display: flex;
+  gap: 12px;
+  max-width: 600px; /* 限制搜索框最大宽度 */
+}
+
+.search-input {
+  width: 400px; /* 固定搜索框宽度 */
 }
 
 .search-box :deep(.el-input__wrapper) {
-  padding-left: 8px;
+  border-radius: 20px; /* 圆角输入框 */
+  padding-left: 16px;
+}
+
+.search-button {
+  border-radius: 20px; /* 圆角按钮 */
+  padding: 0 24px;
 }
 
 .suggestion-item {
@@ -479,5 +638,141 @@ onMounted(() => {
 .brand-name {
   font-size: 13px;
   color: #606266;
+}
+
+:deep(.el-autocomplete-suggestion__wrap) {
+  padding: 4px 0;
+}
+
+:deep(.el-autocomplete-suggestion__list) {
+  margin: 0;
+  padding: 0;
+}
+
+:deep(.el-autocomplete-suggestion__list li) {
+  padding: 0;
+  line-height: 32px;
+}
+
+:deep(.el-autocomplete-suggestion__list li:hover) {
+  background-color: #f5f7fa;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+  padding: 20px;
+}
+
+.product-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+  width: 100%;
+  height: 200px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #909399;
+  background: #f8f9fa;
+}
+
+.image-error .el-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.image-error .text {
+  font-size: 14px;
+}
+
+.product-info {
+  padding: 0 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-name {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-desc {
+  font-size: 12px;
+  color: #999;
+  margin: 8px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-price {
+  color: #f56c6c;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: auto;
+}
+
+.selected-filters {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-tag {
+  font-size: 13px;
+}
+
+.filter-tag :deep(.el-tag__close) {
+  color: #909399;
+}
+
+.clear-all {
+  font-size: 13px;
+  color: #909399;
+}
+
+.clear-all:hover {
+  color: var(--el-color-primary);
 }
 </style> 

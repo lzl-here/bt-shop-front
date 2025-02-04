@@ -3,30 +3,56 @@
     <h2>订单结算页</h2>
 
     <!-- 商品清单 -->
-    <el-card class="order-section">
-      <template #header>
-        <div class="section-header">商品清单</div>
-      </template>
-      
-      <div class="order-items">
-        <div v-for="item in selectedItems" :key="item.id" class="order-item">
-          <img :src="item.image" :alt="item.name" class="item-image">
-          <div class="item-info">
-            <div class="item-name">{{ item.name }}</div>
-            <!-- 添加规格信息 -->
-            <div class="item-specs">
-              <el-tag size="small" type="info">{{ item.specs?.color }}</el-tag>
-              <el-tag size="small" type="info">{{ item.specs?.memory }}</el-tag>
-              <el-tag size="small" type="info">{{ item.specs?.storage }}</el-tag>
-            </div>
-            <div class="item-store">{{ item.storeName }}</div>
+    <div class="checkout-section">
+      <h2 class="section-title">商品清单</h2>
+      <div v-if="checkoutItems.length > 0" class="product-list">
+        <div v-for="item in checkoutItems" :key="item.sku_id" class="product-item">
+          <!-- 商品图片 -->
+          <div class="product-image">
+            <el-image 
+              :src="item.product_info.image" 
+              fit="contain"
+            >
+              <template #error>
+                <div class="image-error">
+                  <el-icon><Picture /></el-icon>
+                  <div class="text">图片加载失败</div>
+                </div>
+              </template>
+            </el-image>
           </div>
-          <div class="item-price">¥{{ item.price.toFixed(2) }}</div>
-          <div class="item-quantity">x{{ item.quantity }}</div>
-          <div class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
+
+          <!-- 商品信息 -->
+          <div class="product-info">
+            <!-- 商品名称 -->
+            <h3 class="product-name">{{ item.product_info.name }}</h3>
+            
+            <!-- 商品分类和品牌 -->
+            <div class="product-meta">
+              <span class="meta-item">分类：{{ item.product_info.category_name }}</span>
+              <span class="meta-item">品牌：{{ item.product_info.brand_name }}</span>
+            </div>
+            
+            <!-- 规格信息 -->
+            <div class="product-specs">
+              <span v-for="spec in item.product_info.specs" 
+                    :key="spec.spec_id" 
+                    class="spec-item"
+              >
+                {{ spec.spec_name }}: {{ spec.spec_value }}
+              </span>
+            </div>
+
+            <!-- 价格和数量 -->
+            <div class="product-price-qty">
+              <span class="price">¥{{ item.product_info.price }}</span>
+              <span class="quantity">x {{ item.quantity }}</span>
+            </div>
+          </div>
         </div>
       </div>
-    </el-card>
+      <el-empty v-else description="暂无商品" />
+    </div>
 
     <!-- 收货地址 -->
     <el-card class="address-section">
@@ -64,12 +90,12 @@
       </div>
       <div class="summary-item total">
         <span>实付金额：</span>
-        <span class="amount">¥{{ (totalAmount + shipping).toFixed(2) }}</span>
+        <span class="amount">¥{{ finalAmount.toFixed(2) }}</span>
       </div>
       <el-button 
         type="primary" 
         size="large" 
-        :disabled="!selectedAddress"
+        :disabled="checkoutItems.length === 0"
         @click="submitOrder"
       >
         提交订单
@@ -79,16 +105,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '../../stores/cart'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { createTrade } from '../../api/orderApi'
+import { pay } from '../../api/payApi'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const submitting = ref(false)
+const checkoutItems = ref([])
+const shipping = ref(0)
+const selectedAddress = ref(null)
+const selectedPayment = ref(null)
+const tradeData = ref(null)
+const tradeToken = ref('') // 存储当前交易的 token
 
 // 收货地址数据
 const addresses = ref([
@@ -141,15 +175,17 @@ const selectedItems = computed(() => {
 
 // 商品总额
 const totalAmount = computed(() => {
-  return selectedItems.value.reduce((total, item) => total + item.price * item.quantity, 0)
+  const amount = checkoutItems.value.reduce((total, item) => {
+    return total + Number(item.product_info.price) * item.quantity
+  }, 0)
+  console.log('Calculated total amount:', amount) // 调试日志
+  return amount
 })
 
-// 运费
-const shipping = ref(0)
-
-// 选中的地址和支付方式
-const selectedAddress = ref(addresses.value.find(addr => addr.isDefault))
-const selectedPayment = ref(paymentMethods.value[0])
+// 实付金额
+const finalAmount = computed(() => {
+  return totalAmount.value + shipping.value
+})
 
 // 选择收货地址
 const selectAddress = (address) => {
@@ -167,55 +203,176 @@ const addNewAddress = () => {
   console.log('添加新地址')
 }
 
-// 提交订单
-const submitOrder = async () => {
-  if (!selectedAddress.value) {
-    ElMessage.warning('请选择收货地址')
-    return
-  }
+// 生成唯一的 token
+const generateToken = () => {
+  return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+}
 
-  submitting.value = true
+// 加载交易数据
+const loadTradeData = () => {
   try {
-    // 模拟创建订单
-    const orderData = {
-      orderId: Date.now().toString(), // 模拟订单ID
-      items: selectedItems.value,
-      address: selectedAddress.value,
-      totalAmount: totalAmount.value + shipping.value,
-      createTime: new Date().toISOString()
-    }
-
-    // 存储订单信息，以便在收银台使用
-    localStorage.setItem('pendingOrder', JSON.stringify(orderData))
-
-    // 如果是从购物车来的，清除选中的商品
-    if (!route.query.from) {
-      cartStore.clearSelected()
-    }
-    // 清除临时订单数据
-    localStorage.removeItem('tempOrder')
+    const tradeId = route.query.trade_id
     
-    // 跳转到收银台页面
-    router.push({
-      path: '/payment',
-      query: {
-        orderId: orderData.orderId,
-        amount: orderData.totalAmount
-      }
-    })
-
-    ElMessage.success('订单创建成功，正在跳转到收银台...')
+    if (!tradeId) {
+      throw new Error('Missing trade ID')
+    }
+    
+    const data = localStorage.getItem(tradeId)
+    if (!data) {
+      throw new Error('No trade data found')
+    }
+    
+    // 重置数据
+    tradeData.value = null
+    checkoutItems.value = []
+    
+    // 生成新的 token
+    tradeToken.value = generateToken()
+    
+    // 加载新数据
+    const parsedData = JSON.parse(data)
+    console.log('Parsed trade data:', parsedData) // 调试日志
+    
+    tradeData.value = parsedData
+    checkoutItems.value = parsedData.items || []
+    selectedAddress.value = parsedData.address
+    selectedPayment.value = parsedData.payment
+    shipping.value = parsedData.shipping?.fee || 0
+    
+    console.log('Trade data loaded:', tradeData.value)
+    console.log('Checkout items:', checkoutItems.value)
+    console.log('Trade token generated:', tradeToken.value)
   } catch (error) {
-    ElMessage.error('订单提交失败')
-  } finally {
-    submitting.value = false
+    console.error('Error loading trade data:', error)
+    ElMessage.error(error.message || '加载交易数据失败')
+    router.push('/')
   }
 }
 
-// 在组件卸载时清除临时订单数据
-onUnmounted(() => {
-  localStorage.removeItem('tempOrder')
+// 监听路由变化
+watch(
+  () => route.query.trade_id,
+  (newTradeId) => {
+    if (newTradeId) {
+      loadTradeData()
+    }
+  },
+  { immediate: true }
+)
+
+// 更新交易数据
+const updateTradeData = () => {
+  if (!tradeData.value) return
+  
+  const tradeId = route.query.trade_id
+  if (!tradeId) return
+  
+  tradeData.value = {
+    ...tradeData.value,
+    address: selectedAddress.value,
+    payment: selectedPayment.value,
+    shipping: {
+      fee: shipping.value,
+      method: '普通快递'
+    },
+    updated_at: new Date().toISOString()
+  }
+  
+  localStorage.setItem(tradeId, JSON.stringify(tradeData.value))
+}
+
+// 监听地址变化
+watch(selectedAddress, () => {
+  updateTradeData()
 })
+
+// 监听支付方式变化
+watch(selectedPayment, () => {
+  updateTradeData()
+})
+
+// 提交订单
+const submitOrder = async () => {
+  try {
+    // 构建订单数据
+    const orderData = {
+      token: tradeToken.value, // 使用生成的 token
+      trade: {
+        trade: {
+          trade_amount: finalAmount.value.toString(),
+          buyer_id: 1,
+          seller_id: 1,
+          pay_type: selectedPayment.value?.method || 'alipay'
+        },
+        order_list: [{
+          order: {
+            shop_id: 1,
+            order_amount: totalAmount.value.toString(),
+            seller_id: 1,
+            buyer_id: 1,
+            buy_num: checkoutItems.value.reduce((sum, item) => sum + item.quantity, 0)
+          },
+          order_item_list: checkoutItems.value.map(item => ({
+            spu_id: item.spu_id,
+            sku_id: item.sku_id,
+            spu_name: item.product_info.name,
+            category_id: item.product_info.category_id,
+            category_name: item.product_info.category_name,
+            brand_id: item.product_info.brand_id,
+            brand_name: item.product_info.brand_name,
+            sku_img_url: item.product_info.image,
+            sku_amount: item.product_info.price,
+            spec_value_list: item.product_info.specs,
+            shop_id: 1,
+            seller_id: 1,
+            buyer_id: 1,
+            buy_num: item.quantity
+          }))
+        }]
+      }
+    }
+
+    console.log('Submitting order with token:', tradeToken.value)
+    const orderResponse = await createTrade(orderData)
+    
+    if (orderResponse.code === 1 && orderResponse.data) {
+      // 发起支付
+      const payData = {
+        trade_no: orderResponse.data.trade_no,
+        subject: checkoutItems.value[0].product_info.name + 
+                (checkoutItems.value.length > 1 ? ` 等${checkoutItems.value.length}件商品` : ''),
+        totalAmount: finalAmount.value.toString(),
+        pay_type: selectedPayment.value?.method || 'alipay'
+      }
+
+      const payResponse = await pay(payData)
+
+      if (payResponse.code === 1 && payResponse.data) {
+        cleanup()
+        localStorage.setItem('pending_trade_no', orderResponse.data.trade_no)
+        window.location.href = payResponse.data.pay_page_url
+        ElMessage.success('订单创建成功，正在跳转支付...')
+      } else {
+        throw new Error(payResponse.msg || '发起支付失败')
+      }
+    } else {
+      throw new Error(orderResponse.msg || '创建订单失败')
+    }
+  } catch (error) {
+    console.error('Error submitting order:', error)
+    ElMessage.error(error.message || '订单提交失败')
+  }
+}
+
+// 清理数据
+const cleanup = () => {
+  const tradeId = route.query.trade_id
+  if (tradeId) {
+    localStorage.removeItem(tradeId)
+    localStorage.removeItem('current_trade_id')
+    tradeToken.value = '' // 清除 token
+  }
+}
 </script>
 
 <style scoped>
@@ -239,62 +396,116 @@ h2 {
   font-weight: 500;
 }
 
-.order-section {
+.checkout-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
   margin-bottom: 20px;
 }
 
-.order-items {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.order-item {
-  display: grid;
-  grid-template-columns: 100px 1fr auto auto auto;
-  align-items: center;
-  gap: 20px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.item-image {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.item-name {
-  font-size: 14px;
+.section-title {
+  font-size: 18px;
   color: #333;
+  margin: 0 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
 }
 
-.item-specs {
+.product-list {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.item-store {
-  font-size: 12px;
-  color: #999;
+.product-item {
+  display: flex;
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
-.item-price,
-.item-quantity {
+.product-image {
+  width: 120px;
+  height: 120px;
+  margin-right: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.product-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-name {
+  font-size: 16px;
+  color: #333;
+  margin: 0 0 12px;
+}
+
+.product-meta {
+  margin-bottom: 8px;
   color: #666;
+  font-size: 14px;
 }
 
-.item-subtotal {
+.meta-item {
+  margin-right: 16px;
+}
+
+.product-specs {
+  margin-bottom: 12px;
+}
+
+.spec-item {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  margin: 0 8px 8px 0;
+}
+
+.product-price-qty {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.price {
   color: #f56c6c;
+  font-size: 18px;
   font-weight: 500;
+}
+
+.quantity {
+  color: #666;
+  font-size: 14px;
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #909399;
+  background: #f8f9fa;
+}
+
+.image-error .el-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.image-error .text {
+  font-size: 12px;
 }
 
 .address-section {
@@ -362,16 +573,14 @@ h2 {
 }
 
 @media screen and (max-width: 768px) {
-  .order-item {
-    grid-template-columns: 80px 1fr;
+  .product-item {
+    flex-direction: column;
     gap: 10px;
   }
 
-  .item-price,
-  .item-quantity,
-  .item-subtotal {
-    grid-column: 2;
-    text-align: right;
+  .product-price-qty {
+    flex-direction: column;
+    align-items: flex-end;
   }
 }
 </style> 
