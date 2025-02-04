@@ -296,7 +296,7 @@ const submitOrder = async () => {
   try {
     // 构建订单数据
     const orderData = {
-      token: tradeToken.value, // 使用生成的 token
+      token: tradeToken.value,
       trade: {
         trade: {
           trade_amount: finalAmount.value.toString(),
@@ -332,29 +332,28 @@ const submitOrder = async () => {
       }
     }
 
-    console.log('Submitting order with token:', tradeToken.value)
+    console.log('Submitting order with data:', orderData)
     const orderResponse = await createTrade(orderData)
     
     if (orderResponse.code === 1 && orderResponse.data) {
-      // 发起支付
-      const payData = {
-        trade_no: orderResponse.data.trade_no,
-        subject: checkoutItems.value[0].product_info.name + 
-                (checkoutItems.value.length > 1 ? ` 等${checkoutItems.value.length}件商品` : ''),
-        totalAmount: finalAmount.value.toString(),
-        pay_type: selectedPayment.value?.method || 'alipay'
-      }
-
-      const payResponse = await pay(payData)
-
-      if (payResponse.code === 1 && payResponse.data) {
-        cleanup()
-        localStorage.setItem('pending_trade_no', orderResponse.data.trade_no)
-        window.location.href = payResponse.data.pay_page_url
-        ElMessage.success('订单创建成功，正在跳转支付...')
-      } else {
-        throw new Error(payResponse.msg || '发起支付失败')
-      }
+      // 清理结算数据
+      cleanup()
+      
+      // 存储订单号，用于支付页面使用
+      localStorage.setItem('pending_trade_no', orderResponse.data.trade_no)
+      
+      // 跳转到支付页面
+      router.push({
+        path: '/payment',
+        query: {
+          trade_no: orderResponse.data.trade_no,
+          amount: finalAmount.value.toString(),
+          subject: checkoutItems.value[0].product_info.name + 
+                  (checkoutItems.value.length > 1 ? ` 等${checkoutItems.value.length}件商品` : '')
+        }
+      })
+      
+      ElMessage.success('订单创建成功，正在跳转支付...')
     } else {
       throw new Error(orderResponse.msg || '创建订单失败')
     }

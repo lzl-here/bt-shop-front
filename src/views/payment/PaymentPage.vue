@@ -1,359 +1,238 @@
 <template>
-  <div class="payment-page">
-    <div class="page-header">
-      <h2>交易详情</h2>
-      <el-button plain @click="router.push('/user/trades')">返回</el-button>
-    </div>
-
-    <!-- 交易信息卡片 -->
-    <el-card class="info-card">
-      <div class="info-header">
-        <div class="trade-info">
-          <span class="trade-id">交易号：{{ orderId }}</span>
-          <span class="trade-time">创建时间：{{ createTime }}</span>
-          <span class="trade-status">支付方式：未支付</span>
-          <span class="trade-time">支付时间：-</span>
+  <div class="payment-container">
+    <div class="payment-card">
+      <h2>订单支付</h2>
+      
+      <!-- 订单信息 -->
+      <div class="order-info">
+        <div class="info-item">
+          <span class="label">订单号：</span>
+          <span class="value">{{ tradeNo }}</span>
         </div>
-        <div class="trade-status">
-          <el-tag type="warning">待付款</el-tag>
+        <div class="info-item">
+          <span class="label">商品：</span>
+          <span class="value">{{ subject }}</span>
         </div>
-      </div>
-    </el-card>
-
-    <!-- 订单列表卡片 -->
-    <el-card class="order-card">
-      <template #header>
-        <div class="card-header">
-          <span class="title">订单信息</span>
-        </div>
-      </template>
-
-      <div class="store-info">
-        <el-icon><Shop /></el-icon>
-        <span class="store-name">华为官方旗舰店</span>
-      </div>
-
-      <div class="order-items">
-        <div class="order-item">
-          <el-image 
-            src="https://via.placeholder.com/80" 
-            class="product-image"
-            fit="cover"
-          />
-          <div class="product-info">
-            <div class="product-name">HUAWEI Mate 60 Pro</div>
-            <div class="product-specs">
-              <el-tag size="small" type="info">墨玉青</el-tag>
-              <el-tag size="small" type="info">12GB</el-tag>
-              <el-tag size="small" type="info">512GB</el-tag>
-            </div>
-          </div>
-          <div class="price-info">
-            <div class="price">¥6999</div>
-            <div class="quantity">x1</div>
-          </div>
+        <div class="info-item">
+          <span class="label">金额：</span>
+          <span class="amount">¥{{ amount }}</span>
         </div>
       </div>
 
-      <div class="order-summary">
-        共1件商品，小计：<span class="total-amount">¥6999</span>
-      </div>
-    </el-card>
-
-    <!-- 收银台卡片 -->
-    <el-card class="payment-card">
-      <template #header>
-        <div class="card-header">
-          <span class="title">收银台</span>
-        </div>
-      </template>
-
-      <div class="payment-amount">
-        <span class="label">交易金额</span>
-        <span class="amount">¥{{ amount }}</span>
-      </div>
-
+      <!-- 支付方式选择 -->
       <div class="payment-methods">
-        <div class="section-title">选择支付方式</div>
-        <div class="method-list">
-          <div 
-            class="method-item"
-            :class="{ active: selectedMethod === 'alipay' }"
-            @click="selectedMethod = 'alipay'"
-          >
-            <i class="method-icon alipay"></i>
-            <span class="method-name">支付宝支付</span>
-          </div>
-          <div 
-            class="method-item"
-            :class="{ active: selectedMethod === 'wechat' }"
-            @click="selectedMethod = 'wechat'"
-          >
-            <i class="method-icon wechat"></i>
-            <span class="method-name">微信支付</span>
-          </div>
-        </div>
+        <h3>选择支付方式</h3>
+        <el-radio-group v-model="paymentMethod">
+          <el-radio label="alipay">
+            <div class="payment-method-item">
+              <img src="../../assets/alipay-logo.png" alt="支付宝" class="payment-icon" />
+              <span>支付宝支付</span>
+            </div>
+          </el-radio>
+          <el-radio label="wechat">
+            <div class="payment-method-item">
+              <img src="../../assets/wechat-logo.png" alt="微信支付" class="payment-icon" />
+              <span>微信支付</span>
+            </div>
+          </el-radio>
+        </el-radio-group>
       </div>
 
-      <div class="payment-action">
-        <el-button type="primary" size="large" @click="handlePayment">
-          立即支付
-        </el-button>
-        <el-button type="danger" size="large" @click="handleCancel">
-          取消支付
-        </el-button>
+      <!-- 支付按钮 -->
+      <el-button 
+        type="primary" 
+        :loading="paying"
+        @click="handlePay"
+        class="pay-button"
+      >
+        立即支付
+      </el-button>
+
+      <!-- 温馨提示 -->
+      <div class="payment-tips">
+        <p>温馨提示：</p>
+        <ul>
+          <li>请在新打开的页面完成支付</li>
+          <li>支付完成后请根据提示完成付款</li>
+          <li>如遇到支付问题，请及时联系客服</li>
+        </ul>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Shop } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { pay } from '../../api/payApi'
 
 const route = useRoute()
 const router = useRouter()
 
-// 交易基本信息
-const orderId = ref(route.query.orderId)
-const amount = ref(Number(route.query.amount) || 0)
-const createTime = ref('2024-03-20 14:30:00')
-const selectedMethod = ref('')
+const tradeNo = ref('')
+const amount = ref('')
+const subject = ref('')
+const paymentMethod = ref('alipay')
+const paying = ref(false)
 
-// 处理支付
-const handlePayment = () => {
-  if (!selectedMethod.value) {
-    ElMessage.warning('请选择支付方式')
-    return
-  }
-
-  // TODO: 调用支付接口
-  ElMessage.success('支付成功')
-  router.push('/user/trades')
-}
-
-// 处理取消支付
-const handleCancel = () => {
-  ElMessageBox.confirm(
-    '确定要取消支付吗？',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    router.push('/user/trades')
-  }).catch(() => {
-    // 用户点击取消按钮，不做任何操作
-  })
-}
-
-// 初始化
+// 初始化支付数据
 onMounted(() => {
-  if (!orderId.value || !amount.value) {
-    ElMessage.error('交易不存在')
+  tradeNo.value = route.query.trade_no || ''
+  amount.value = route.query.amount || ''
+  subject.value = route.query.subject || ''
+  
+  if (!tradeNo.value || !amount.value) {
+    ElMessage.error('支付参数不完整')
     router.push('/')
   }
 })
+
+// 处理支付
+const handlePay = async () => {
+  if (paying.value) return
+  
+  try {
+    paying.value = true
+    ElMessage.info('正在发起支付...')
+    
+    const payData = {
+      trade_no: tradeNo.value,
+      subject: subject.value,
+      total_amount: amount.value,
+      pay_type: paymentMethod.value
+    }
+    
+    console.log('Requesting payment with data:', payData)
+    const response = await pay(payData)
+    
+    if (response.code === 1 && response.data?.pay_info?.pay_page_url) {
+      // 存储支付相关信息
+      localStorage.setItem('paying_trade_no', tradeNo.value)
+      localStorage.setItem('paying_amount', amount.value)
+      
+      // 跳转到第三方支付页面
+      const payPageUrl = response.data.pay_info.pay_page_url
+      console.log('Redirecting to payment page:', payPageUrl)
+      window.location.href = payPageUrl
+    } else {
+      throw new Error(response.msg || '获取支付链接失败')
+    }
+  } catch (error) {
+    console.error('Payment error:', error)
+    ElMessage.error(error.message || '发起支付失败，请重试')
+  } finally {
+    paying.value = false
+  }
+}
 </script>
 
 <style scoped>
-.payment-page {
-  max-width: 1200px;
-  margin: 20px auto;
+.payment-container {
+  max-width: 800px;
+  margin: 40px auto;
   padding: 0 20px;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.info-card,
 .payment-card {
-  margin-bottom: 20px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.info-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.trade-info {
-  display: flex;
-  gap: 24px;
-  color: #606266;
-  font-size: 14px;
-}
-
-.payment-amount {
+h2 {
+  margin: 0 0 24px;
+  color: #333;
   text-align: center;
-  margin-bottom: 30px;
 }
 
-.payment-amount .label {
-  font-size: 16px;
-  color: #606266;
-  margin-right: 10px;
-}
-
-.payment-amount .amount {
-  font-size: 24px;
-  color: #f56c6c;
-  font-weight: 500;
-}
-
-.section-title {
-  margin-bottom: 15px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.method-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.method-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px;
-  border: 1px solid #dcdfe6;
+.order-info {
+  background: #f8f9fa;
+  padding: 20px;
   border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
+  margin-bottom: 24px;
 }
 
-.method-item:hover {
-  border-color: var(--el-color-primary);
-}
-
-.method-item.active {
-  border-color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-}
-
-.payment-action {
-  text-align: center;
+.info-item {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
+  margin-bottom: 12px;
 }
 
-.payment-action .el-button {
-  width: 180px;
-  height: 48px;
-  font-size: 16px;
+.info-item:last-child {
+  margin-bottom: 0;
 }
 
-/* 订单列表样式 */
-.order-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.store-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 0 15px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #606266;
-}
-
-.store-name {
-  font-size: 14px;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.order-items {
-  padding: 20px 0;
-}
-
-.order-item {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 10px 0;
-}
-
-.product-image {
+.label {
+  color: #666;
   width: 80px;
-  height: 80px;
-  border-radius: 4px;
 }
 
-.product-info {
+.value {
+  color: #333;
   flex: 1;
 }
 
-.product-name {
-  font-size: 14px;
-  color: #303133;
-  margin-bottom: 8px;
-}
-
-.product-specs {
-  display: flex;
-  gap: 8px;
-}
-
-.price-info {
-  text-align: right;
-  min-width: 100px;
-}
-
-.price {
+.amount {
   color: #f56c6c;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 500;
+}
+
+.payment-methods {
+  margin: 24px 0;
+}
+
+h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #333;
+}
+
+.pay-button {
+  width: 100%;
+  height: 48px;
+  margin-top: 24px;
+}
+
+.payment-method-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.payment-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.payment-tips {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #666;
+}
+
+.payment-tips p {
+  margin: 0 0 8px;
+  color: #333;
+  font-weight: 500;
+}
+
+.payment-tips ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.payment-tips li {
   margin-bottom: 4px;
 }
 
-.quantity {
-  color: #909399;
-  font-size: 13px;
-}
-
-.order-summary {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding-top: 15px;
-  border-top: 1px solid #f0f0f0;
-  color: #606266;
-  font-size: 14px;
-}
-
-.total-amount {
-  margin-left: 8px;
-  color: #f56c6c;
-  font-size: 16px;
-  font-weight: 500;
+.payment-tips li:last-child {
+  margin-bottom: 0;
 }
 </style> 
