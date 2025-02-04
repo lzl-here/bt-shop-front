@@ -122,35 +122,16 @@
     />
 
     <!-- 分页 -->
-    <div class="pagination-container">
-      <div class="pagination-left">
-        Total {{ total }}
-        <el-select v-model="pageSize" class="page-size-select">
-          <el-option
-            v-for="size in [10, 20, 30]"
-            :key="size"
-            :label="`${size}/page`"
-            :value="size"
-          />
-        </el-select>
-      </div>
-      <div class="pagination-center">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          layout="prev, pager, next"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-      <div class="pagination-right">
-        Go to
-        <el-input
-          v-model="goToPage"
-          class="go-to-input"
-          @keyup.enter="handleGoToPage"
-        />
-      </div>
+    <div class="pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, prev, pager, next, sizes"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
   </div>
 </template>
@@ -177,7 +158,6 @@ const searchText = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const goToPage = ref('')
 
 // 模拟交易数据
 const mockTrades = Array.from({ length: 36 }, (_, index) => ({
@@ -301,12 +281,8 @@ const handleCurrentChange = (val) => {
   currentPage.value = val
 }
 
-const handleGoToPage = () => {
-  const page = parseInt(goToPage.value)
-  if (page && page > 0 && page <= Math.ceil(total.value / pageSize.value)) {
-    currentPage.value = page
-  }
-  goToPage.value = ''
+const handleSizeChange = (val) => {
+  pageSize.value = val
 }
 </script>
 
@@ -501,48 +477,10 @@ const handleGoToPage = () => {
   gap: 10px;
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #fff;
-  padding: 15px 20px;
-  border-radius: 4px;
-  margin-top: 20px;
-}
-
-.pagination-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-size-select {
-  width: 110px;
-}
-
-.pagination-center {
-  flex: 1;
+.pagination {
   display: flex;
   justify-content: center;
-}
-
-.pagination-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.go-to-input {
-  width: 60px;
-}
-
-:deep(.el-input__wrapper) {
-  padding: 0 8px;
-}
-
-:deep(.el-input__inner) {
-  text-align: center;
+  margin-top: 20px;
 }
 
 .order-info-title {

@@ -55,6 +55,21 @@
               </div>
             </div>
           </div>
+
+          <!-- 品牌列表 - 移到这里 -->
+          <div class="brand-section">
+            <div class="section-title">品牌</div>
+            <div class="brand-list">
+              <router-link 
+                v-for="brand in brands" 
+                :key="brand.id"
+                :to="`/products?brand=${brand.id}`"
+                class="brand-item"
+              >
+                <span class="brand-name">{{ brand.name }}</span>
+              </router-link>
+            </div>
+          </div>
         </div>
 
         <!-- 中间内容区域 -->
@@ -225,11 +240,10 @@ const categories = ref([
         id: 11,
         name: '手机',
         children: [
-          { id: 111, name: '华为' },
-          { id: 112, name: '苹果' },
-          { id: 113, name: '小米' },
-          { id: 114, name: 'OPPO' },
-          { id: 115, name: 'vivo' }
+          { id: 111, name: '旗舰机' },
+          { id: 112, name: '性能机' },
+          { id: 113, name: '游戏手机' },
+          { id: 114, name: '拍照手机' },
         ]
       },
       {
@@ -408,6 +422,35 @@ const handleMouseEnter = (category) => {
 const handleMouseLeave = () => {
   activeCategory.value = null
 }
+
+// 品牌数据
+const brands = ref([
+  {
+    id: 1,
+    name: 'HUAWEI',
+    logo: 'https://via.placeholder.com/80',
+  },
+  {
+    id: 2,
+    name: 'Apple',
+    logo: 'https://via.placeholder.com/80',
+  },
+  {
+    id: 3,
+    name: '小米',
+    logo: 'https://via.placeholder.com/80',
+  },
+  {
+    id: 4,
+    name: 'OPPO',
+    logo: 'https://via.placeholder.com/80',
+  },
+  {
+    id: 5,
+    name: 'vivo',
+    logo: 'https://via.placeholder.com/80',
+  }
+])
 </script>
 
 <style scoped>
@@ -779,5 +822,41 @@ const handleMouseLeave = () => {
   .price {
     font-size: 16px;
   }
+}
+
+.brand-section {
+  padding: 20px;
+  border-top: 1px solid #ebeef5;
+  margin-top: 100px;  /* 增加上方间距到 100px */
+  padding-top: 40px;  /* 增加内部上方间距到 40px */
+}
+
+.section-title {
+  font-size: 16px;
+  color: #606266;
+  margin-bottom: 20px;
+}
+
+.brand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brand-item {
+  padding: 8px 12px;
+  color: #606266;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.brand-item:hover {
+  color: var(--el-color-primary);
+  background-color: #f5f7fa;
+}
+
+/* 移除不需要的样式 */
+.brand-logo {
+  display: none;
 }
 </style> 

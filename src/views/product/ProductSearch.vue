@@ -169,18 +169,14 @@
         全部结果 > "{{ searchForm.keyword }}"
       </div>
 
-      <!-- 排序工具栏 -->
-      <div class="sort-toolbar">
-        <div class="sort-items">
-          <div 
-            v-for="(item, index) in sortOptions" 
-            :key="index"
-            :class="['sort-item', currentSort === item.value ? 'active' : '']"
-            @click="handleSort(item.value)"
-          >
-            {{ item.label }}
-          </div>
-        </div>
+      <!-- 排序选项 -->
+      <div class="sort-options">
+        <el-radio-group v-model="sortBy" @change="handleSortChange">
+          <el-radio-button label="new">新品</el-radio-button>
+          <el-radio-button label="sales">销量</el-radio-button>
+          <el-radio-button label="comments">评论数</el-radio-button>
+          <el-radio-button label="price">价格</el-radio-button>
+        </el-radio-group>
       </div>
 
       <!-- 商品列表 -->
@@ -438,6 +434,17 @@ const selectRefreshRate = (rate) => {
 const selectedScreenSize = ref('6.76英寸')
 const selectScreenSize = (size) => {
   selectedScreenSize.value = size
+}
+
+// 排序方式，默认为新品
+const sortBy = ref('new')
+
+// 处理排序变化
+const handleSortChange = (value) => {
+  // 处理排序逻辑
+  console.log('排序方式改变:', value)
+  // 重新获取商品列表
+  fetchProducts()
 }
 </script>
 
@@ -972,5 +979,15 @@ const selectScreenSize = (size) => {
 .main-content {
   flex: 1;
   min-width: 0;
+}
+
+.sort-options {
+  margin-bottom: 24px;  /* 增加下方间距 */
+  padding: 16px 0;      /* 增加上下内边距 */
+  border-bottom: 1px solid #ebeef5;  /* 添加底部分隔线 */
+}
+
+.product-grid {
+  margin-top: 24px;  /* 只添加上方间距 */
 }
 </style> 

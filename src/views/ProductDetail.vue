@@ -1,128 +1,100 @@
 <template>
   <div v-if="product" class="product-detail">
-    <div class="product-container">
-      <!-- 左侧商品图片 -->
-      <div class="product-gallery">
-        <el-image
-          :src="product.image"
-          fit="contain"
-          class="main-image"
-        />
-        <div class="image-list">
-          <el-image
-            v-for="(img, index) in product.images"
-            :key="index"
-            :src="img"
-            fit="cover"
-            class="thumb-image"
-            @click="selectImage(img)"
+    <!-- 商品分类导航 -->
+    <div class="category-nav">
+      商品分类层级
+    </div>
+
+    <!-- 商品主要信息区域 -->
+    <el-card class="product-main">
+      <div class="product-container">
+        <!-- 左侧商品图片 -->
+        <div class="product-gallery">
+          <el-image 
+            :src="product.image" 
+            fit="contain"
+            :preview-src-list="[product.image]"
           />
         </div>
-      </div>
 
-      <!-- 右侧商品信息 -->
-      <div class="product-info">
-        <h1 class="product-name">{{ product.name }}</h1>
-        <div class="product-desc">{{ product.description }}</div>
-        
-        <div class="product-meta">
-          <div class="price-section">
-            <span class="label">价格</span>
-            <span class="price">¥{{ product.price }}</span>
+        <!-- 右侧商品信息 -->
+        <div class="product-info">
+          <h1 class="product-name">{{ product.name }}</h1>
+          <div class="product-desc">{{ product.description }}</div>
+          
+          <div class="info-item">
+            <div class="label">价格</div>
+            <div class="price">¥{{ product.price }}</div>
           </div>
-          <div class="sales-section">
-            <span class="label">月销量</span>
-            <span class="sales">{{ product.sales }}件</span>
-          </div>
-        </div>
 
-        <div class="product-attrs">
-          <div class="attr-item">
-            <span class="label">品牌</span>
-            <el-tag size="small">{{ product.brandName }}</el-tag>
+          <div class="info-item">
+            <div class="label">月销量</div>
+            <div class="value">{{ product.sales }} 件</div>
           </div>
-          <div class="attr-item">
-            <span class="label">店铺</span>
+
+          <div class="info-item">
+            <div class="label">品牌</div>
+            <el-tag size="small" type="info">{{ product.brandName }}</el-tag>
+          </div>
+
+          <div class="info-item">
+            <div class="label">店铺</div>
             <el-tag size="small" type="success">{{ product.storeName }}</el-tag>
           </div>
-        </div>
 
-        <!-- 规格选择 -->
-        <div class="specs-section">
-          <!-- 颜色规格 -->
-          <div class="spec-group">
-            <div class="spec-title">颜色</div>
-            <div class="spec-options">
-              <div
-                v-for="color in specs.colors"
-                :key="color.value"
-                :class="['spec-item', selectedSpecs.color === color.value ? 'active' : '']"
-                @click="selectSpec('color', color.value)"
-              >
-                {{ color.label }}
+          <!-- 规格选择 -->
+          <div class="specs-section">
+            <div class="spec-item">
+              <div class="label">颜色</div>
+              <div class="spec-options">
+                <el-radio-group v-model="selectedSpecs.color">
+                  <el-radio-button v-for="color in specs.colors" 
+                    :key="color.value" 
+                    :label="color.value"
+                  >
+                    {{ color.label }}
+                  </el-radio-button>
+                </el-radio-group>
+              </div>
+            </div>
+
+            <div class="spec-item">
+              <div class="label">内存</div>
+              <div class="spec-options">
+                <el-radio-group v-model="selectedSpecs.memory">
+                  <el-radio-button v-for="memory in specs.memory" 
+                    :key="memory.value" 
+                    :label="memory.value"
+                  >
+                    {{ memory.label }}
+                  </el-radio-button>
+                </el-radio-group>
+              </div>
+            </div>
+
+            <div class="spec-item">
+              <div class="label">存储容量</div>
+              <div class="spec-options">
+                <el-radio-group v-model="selectedSpecs.storage">
+                  <el-radio-button v-for="storage in specs.storage" 
+                    :key="storage.value" 
+                    :label="storage.value"
+                  >
+                    {{ storage.label }}
+                  </el-radio-button>
+                </el-radio-group>
               </div>
             </div>
           </div>
 
-          <!-- 内存规格 -->
-          <div class="spec-group">
-            <div class="spec-title">内存</div>
-            <div class="spec-options">
-              <div
-                v-for="memory in specs.memory"
-                :key="memory.value"
-                :class="['spec-item', selectedSpecs.memory === memory.value ? 'active' : '']"
-                @click="selectSpec('memory', memory.value)"
-              >
-                {{ memory.label }}
-              </div>
-            </div>
+          <!-- 购买按钮 -->
+          <div class="action-buttons">
+            <el-button type="primary" size="large" @click="addToCart">加入购物车</el-button>
+            <el-button type="danger" size="large" @click="buyNow">立即购买</el-button>
           </div>
-
-          <!-- 存储规格 -->
-          <div class="spec-group">
-            <div class="spec-title">存储容量</div>
-            <div class="spec-options">
-              <div
-                v-for="storage in specs.storage"
-                :key="storage.value"
-                :class="['spec-item', selectedSpecs.storage === storage.value ? 'active' : '']"
-                @click="selectSpec('storage', storage.value)"
-              >
-                {{ storage.label }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="quantity-section">
-          <span class="label">数量</span>
-          <el-input-number
-            v-model="quantity"
-            :min="1"
-            :max="99"
-            size="large"
-          />
-        </div>
-
-        <div class="action-buttons">
-          <el-button 
-            type="primary" 
-            size="large"
-            @click="addToCart"
-          >
-            加入购物车
-          </el-button>
-          <el-button 
-            type="danger" 
-            size="large"
-            @click="buyNow"
-          >
-            立即购买
-          </el-button>
         </div>
       </div>
-    </div>
+    </el-card>
 
     <!-- 商品详情 -->
     <div class="detail-section">
@@ -291,114 +263,110 @@ const buyNow = () => {
 <style scoped>
 .product-detail {
   max-width: 1200px;
-  margin: 20px auto;
-  padding: 0 20px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.category-nav {
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  color: #606266;
+}
+
+.product-main {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
 }
 
 .product-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 40px;
-  background: #fff;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .product-gallery {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.main-image {
-  width: 100%;
-  max-width: 400px;
+  width: 400px;
   height: 400px;
 }
 
-.image-list {
-  display: flex;
-  gap: 10px;
-}
-
-.thumb-image {
-  width: 80px;
-  height: 80px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.thumb-image:hover {
-  border-color: var(--el-color-primary);
+.product-gallery :deep(.el-image) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .product-info {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex: 1;
+  min-width: 0;
 }
 
 .product-name {
   font-size: 24px;
-  color: #333;
-  margin: 0;
+  font-weight: 500;
+  margin: 0 0 12px;
+  color: #303133;
 }
 
 .product-desc {
+  color: #909399;
   font-size: 14px;
-  color: #666;
+  margin-bottom: 24px;
   line-height: 1.6;
 }
 
-.product-meta {
-  background: #f8f8f8;
-  padding: 20px;
-  border-radius: 4px;
-}
-
-.price-section,
-.sales-section {
+.info-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.price-section .price {
-  color: #f56c6c;
-  font-size: 28px;
-  font-weight: bold;
+  margin-bottom: 16px;
 }
 
 .label {
-  color: #666;
-  width: 60px;
+  width: 80px;
+  color: #909399;
+  font-size: 14px;
 }
 
-.product-attrs {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.price {
+  font-size: 28px;
+  color: #f56c6c;
+  font-weight: 500;
 }
 
-.attr-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.value {
+  color: #606266;
 }
 
-.quantity-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.specs-section {
+  margin: 24px 0;
+  padding: 24px 0;
+  border-top: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.spec-item {
+  margin-bottom: 20px;
+}
+
+.spec-item:last-child {
+  margin-bottom: 0;
+}
+
+.spec-options {
+  margin-top: 8px;
 }
 
 .action-buttons {
   display: flex;
-  gap: 20px;
-  margin-top: 20px;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.action-buttons .el-button {
+  flex: 1;
+  height: 48px;
+  font-size: 16px;
 }
 
 .detail-section {
@@ -412,57 +380,6 @@ const buyNow = () => {
   flex-direction: column;
   gap: 20px;
   padding: 20px 0;
-}
-
-.specs-section {
-  margin-bottom: 30px;
-}
-
-.spec-group {
-  margin-bottom: 20px;
-}
-
-.spec-title {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-}
-
-.spec-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.spec-item {
-  padding: 8px 20px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 14px;
-  color: #606266;
-}
-
-.spec-item:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-}
-
-.spec-item.active {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-
-@media screen and (max-width: 768px) {
-  .product-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-  }
 }
 
 .loading-container {
