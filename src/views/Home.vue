@@ -26,29 +26,29 @@
             <!-- 一级分类 -->
             <div 
               v-for="category in categories" 
-              :key="category.id"
+              :key="category.category_id"
               class="category-item"
               @mouseenter="handleMouseEnter(category)"
               @mouseleave="handleMouseLeave"
             >
               <div class="category-title">
                 <el-icon><Folder /></el-icon>
-                <span>{{ category.name }}</span>
+                <span>{{ category.category_name }}</span>
                 <el-icon class="arrow"><ArrowRight /></el-icon>
               </div>
 
               <!-- 二级和三级分类浮层 -->
-              <div v-show="activeCategory === category.id" class="sub-categories">
-                <div v-for="subCat in category.children" :key="subCat.id" class="sub-category">
-                  <div class="sub-category-title">{{ subCat.name }}</div>
+              <div v-show="activeCategory === category.category_id" class="sub-categories">
+                <div v-for="subCat in category.children" :key="subCat.category_id" class="sub-category">
+                  <div class="sub-category-title">{{ subCat.category_name }}</div>
                   <div class="third-categories">
                     <router-link 
                       v-for="thirdCat in subCat.children" 
-                      :key="thirdCat.id"
-                      :to="`/products?categoryId=${thirdCat.id}`"
+                      :key="thirdCat.category_id"
+                      :to="`/products?categoryId=${thirdCat.category_id}`"
                       class="third-category"
                     >
-                      {{ thirdCat.name }}
+                      {{ thirdCat.category_name }}
                     </router-link>
                   </div>
                 </div>
@@ -56,17 +56,28 @@
             </div>
           </div>
 
-          <!-- 品牌列表 - 移到这里 -->
+          <!-- 品牌列表 -->
           <div class="brand-section">
             <div class="section-title">品牌</div>
             <div class="brand-list">
               <router-link 
                 v-for="brand in brands" 
-                :key="brand.id"
-                :to="`/products?brand=${brand.id}`"
+                :key="brand.brand_id"
+                :to="`/products?brand=${brand.brand_id}`"
                 class="brand-item"
               >
-                <span class="brand-name">{{ brand.name }}</span>
+                <el-image 
+                  :src="brand.icon_url" 
+                  class="brand-icon"
+                  fit="contain"
+                >
+                  <template #error>
+                    <div class="image-slot">
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </template>
+                </el-image>
+                <span class="brand-name">{{ brand.brand_name }}</span>
               </router-link>
             </div>
           </div>
@@ -119,7 +130,6 @@
                     <el-tag 
                       v-for="tag in product.tags" 
                       :key="tag"
-                      :type="tag === '新品' ? 'success' : 'danger'"
                       size="small"
                     >
                       {{ tag }}
@@ -130,7 +140,7 @@
                   <h3 class="product-name">{{ product.name }}</h3>
                   <div class="product-price">
                     <span class="price">¥{{ product.price }}</span>
-                    <span class="sales">月销 {{ product.sales }}+</span>
+                    <span class="sales">月销 {{ product.sales }}</span>
                   </div>
                 </div>
               </div>
@@ -167,35 +177,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { getCategoryList, getBrandList } from '../api/goodsApi'
 import { 
   ArrowRight, 
   ShoppingBag, 
   Ticket, 
   Shop, 
-  Folder
+  Folder,
+  Picture
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
-
-// 模拟数据
+const categories = ref([])
+const brands = ref([])
+const activeCategory = ref(null)
 const banners = ref([
   {
     id: 1,
-    image: 'https://via.placeholder.com/1200x400',
-    title: '华为 Mate 60 Pro',
-    description: '突破性的技术创新，卓越的影像体验',
-    productId: 1
-  },
-  {
-    id: 2,
-    image: 'https://via.placeholder.com/1200x400',
-    title: '限时特惠',
-    description: '精选商品低至5折',
-    productId: 2
+    title: '新品上市',
+    description: '限时特惠，抢先体验',
+    image: 'https://via.placeholder.com/1200x400'
   }
 ])
 
@@ -204,253 +209,48 @@ const hotProducts = ref([
     id: 1,
     name: 'HUAWEI Mate 60 Pro',
     price: 6999,
-    image: 'https://via.placeholder.com/200x200',
     sales: 1000,
+    image: 'https://via.placeholder.com/200',
     tags: ['新品', '热销']
-  },
-  {
-    id: 2,
-    name: 'iPhone 15 Pro',
-    price: 7999,
-    image: 'https://via.placeholder.com/200x200',
-    sales: 800,
-    tags: ['新品']
-  },
-  {
-    id: 3,
-    name: '小米14 Pro',
-    price: 4999,
-    image: 'https://via.placeholder.com/200x200',
-    sales: 1200,
-    tags: ['热销']
   }
 ])
 
-const viewProduct = (productId) => {
-  router.push(`/products/${productId}`)
+// 获取分类和品牌数据
+const fetchData = async () => {
+  try {
+    // 获取分类列表
+    const categoryResponse = await getCategoryList()
+    console.log('Category response:', categoryResponse)
+    if (categoryResponse.code === 1) {
+      categories.value = categoryResponse.data.category_list || []
+    }
+
+    // 获取品牌列表
+    const brandResponse = await getBrandList()
+    console.log('Brand response:', brandResponse)
+    if (brandResponse.code === 1) {
+      brands.value = brandResponse.data.brand_list || []
+    }
+  } catch (error) {
+    console.error('Failed to fetch data:', error)
+  }
 }
 
-// 分类数据
-const categories = ref([
-  {
-    id: 1,
-    name: '数码办公',
-    children: [
-      {
-        id: 11,
-        name: '手机',
-        children: [
-          { id: 111, name: '旗舰机' },
-          { id: 112, name: '性能机' },
-          { id: 113, name: '游戏手机' },
-          { id: 114, name: '拍照手机' },
-        ]
-      },
-      {
-        id: 12,
-        name: '电脑',
-        children: [
-          { id: 121, name: '笔记本' },
-          { id: 122, name: '台式机' },
-          { id: 123, name: '平板电脑' },
-          { id: 124, name: '一体机' }
-        ]
-      },
-      {
-        id: 13,
-        name: '办公设备',
-        children: [
-          { id: 131, name: '打印机' },
-          { id: 132, name: '投影仪' },
-          { id: 133, name: '扫描仪' },
-          { id: 134, name: '复印机' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: '家用电器',
-    children: [
-      {
-        id: 21,
-        name: '大家电',
-        children: [
-          { id: 211, name: '电视' },
-          { id: 212, name: '空调' },
-          { id: 213, name: '冰箱' },
-          { id: 214, name: '洗衣机' }
-        ]
-      },
-      {
-        id: 22,
-        name: '厨房电器',
-        children: [
-          { id: 221, name: '微波炉' },
-          { id: 222, name: '电饭煲' },
-          { id: 223, name: '电磁炉' },
-          { id: 224, name: '烤箱' }
-        ]
-      },
-      {
-        id: 23,
-        name: '生活电器',
-        children: [
-          { id: 231, name: '吸尘器' },
-          { id: 232, name: '电风扇' },
-          { id: 233, name: '加湿器' },
-          { id: 234, name: '净化器' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: '服装鞋帽',
-    children: [
-      {
-        id: 31,
-        name: '女装',
-        children: [
-          { id: 311, name: '连衣裙' },
-          { id: 312, name: 'T恤' },
-          { id: 313, name: '衬衫' },
-          { id: 314, name: '外套' }
-        ]
-      },
-      {
-        id: 32,
-        name: '男装',
-        children: [
-          { id: 321, name: '夹克' },
-          { id: 322, name: '西装' },
-          { id: 323, name: '休闲裤' },
-          { id: 324, name: '运动装' }
-        ]
-      },
-      {
-        id: 33,
-        name: '鞋靴',
-        children: [
-          { id: 331, name: '运动鞋' },
-          { id: 332, name: '皮鞋' },
-          { id: 333, name: '靴子' },
-          { id: 334, name: '凉鞋' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 4,
-    name: '美妆护肤',
-    children: [
-      {
-        id: 41,
-        name: '面部护理',
-        children: [
-          { id: 411, name: '面霜' },
-          { id: 412, name: '精华' },
-          { id: 413, name: '面膜' },
-          { id: 414, name: '洁面' }
-        ]
-      },
-      {
-        id: 42,
-        name: '彩妆',
-        children: [
-          { id: 421, name: '口红' },
-          { id: 422, name: '粉底' },
-          { id: 423, name: '眼影' },
-          { id: 424, name: '腮红' }
-        ]
-      },
-      {
-        id: 43,
-        name: '香水',
-        children: [
-          { id: 431, name: '女士香水' },
-          { id: 432, name: '男士香水' },
-          { id: 433, name: '中性香水' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 5,
-    name: '食品生鲜',
-    children: [
-      {
-        id: 51,
-        name: '生鲜',
-        children: [
-          { id: 511, name: '水果' },
-          { id: 512, name: '蔬菜' },
-          { id: 513, name: '肉类' },
-          { id: 514, name: '海鲜' }
-        ]
-      },
-      {
-        id: 52,
-        name: '零食',
-        children: [
-          { id: 521, name: '饼干' },
-          { id: 522, name: '糖果' },
-          { id: 523, name: '坚果' },
-          { id: 524, name: '膨化食品' }
-        ]
-      },
-      {
-        id: 53,
-        name: '饮料',
-        children: [
-          { id: 531, name: '茶饮料' },
-          { id: 532, name: '碳酸饮料' },
-          { id: 533, name: '果汁' },
-          { id: 534, name: '咖啡' }
-        ]
-      }
-    ]
-  }
-])
-
-const activeCategory = ref(null)
+onMounted(() => {
+  fetchData()
+})
 
 const handleMouseEnter = (category) => {
-  activeCategory.value = category.id
+  activeCategory.value = category.category_id
 }
 
 const handleMouseLeave = () => {
   activeCategory.value = null
 }
 
-// 品牌数据
-const brands = ref([
-  {
-    id: 1,
-    name: 'HUAWEI',
-    logo: 'https://via.placeholder.com/80',
-  },
-  {
-    id: 2,
-    name: 'Apple',
-    logo: 'https://via.placeholder.com/80',
-  },
-  {
-    id: 3,
-    name: '小米',
-    logo: 'https://via.placeholder.com/80',
-  },
-  {
-    id: 4,
-    name: 'OPPO',
-    logo: 'https://via.placeholder.com/80',
-  },
-  {
-    id: 5,
-    name: 'vivo',
-    logo: 'https://via.placeholder.com/80',
-  }
-])
+const viewProduct = (productId) => {
+  router.push(`/products/${productId}`)
+}
 </script>
 
 <style scoped>
@@ -855,8 +655,22 @@ const brands = ref([
   background-color: #f5f7fa;
 }
 
-/* 移除不需要的样式 */
-.brand-logo {
-  display: none;
+.brand-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+
+.image-slot {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-name {
+  font-size: 14px;
+  color: #606266;
 }
 </style> 
