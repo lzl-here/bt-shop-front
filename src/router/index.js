@@ -170,6 +170,12 @@ const routes = [
     path: '/product/:id',
     name: 'ProductDetail',
     component: ProductDetail
+  },
+  {
+    path: '/user/trades/:tradeNo',
+    name: 'TradeDetail',
+    component: () => import('../views/user/TradeDetail.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

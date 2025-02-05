@@ -2,231 +2,202 @@
   <div class="trade-detail">
     <div class="page-header">
       <h2>交易详情</h2>
-      <el-button @click="$router.back()">返回</el-button>
+      <el-button link @click="$router.back()">返回</el-button>
     </div>
 
-    <!-- 交易信息 -->
-    <el-card class="info-card">
-      <template #header>
-        <div class="card-header">
-          <span>交易信息</span>
-          <div class="trade-status">{{ trade.status }}</div>
-        </div>
-      </template>
-      <div class="info-list">
-        <div class="info-item">
-          <span class="label">交易号：</span>
-          <span class="value">{{ trade.id }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">创建时间：</span>
-          <span class="value">{{ trade.createTime }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">支付方式：</span>
-          <span class="value">{{ trade.paymentMethod || '未支付' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">支付时间：</span>
-          <span class="value">{{ trade.payTime || '-' }}</span>
-        </div>
-      </div>
-    </el-card>
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-container">
+      <el-skeleton :rows="5" animated />
+    </div>
 
-    <!-- 店铺订单列表 -->
-    <el-card v-for="order in trade.orders" :key="order.id" class="order-card">
-      <template #header>
-        <div class="store-header">
-          <div class="store-info">
-            <el-icon><Shop /></el-icon>
-            <span class="store-name">{{ order.storeName }}</span>
+    <template v-else-if="tradeDetail">
+      <!-- 交易信息 -->
+      <el-card class="detail-card">
+        <template #header>
+          <div class="card-header">
+            <span>交易信息</span>
+            <span class="trade-status">{{ getTradeStatusText(tradeDetail.trade.trade.trade_status) }}</span>
           </div>
-          <div class="order-status">{{ order.status }}</div>
-        </div>
-      </template>
+        </template>
+        <el-descriptions :column="2">
+          <el-descriptions-item label="交易号">
+            {{ tradeDetail.trade.trade.trade_no }}
+          </el-descriptions-item>
+          <el-descriptions-item label="支付方式">
+            {{ getPayTypeText(tradeDetail.trade.trade.pay_type) }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-card>
 
-      <!-- 添加订单信息标题 -->
-      <div class="section-title">订单信息</div>
-
-      <div class="product-list">
-        <div 
-          v-for="product in order.products" 
-          :key="product.id" 
-          class="product-item"
-          @click="viewOrderDetail(order.id)"
+      <!-- 商品信息 -->
+      <el-card class="detail-card">
+        <template #header>
+          <div class="card-header">
+            <span>商品信息</span>
+          </div>
+        </template>
+        <div v-for="order in tradeDetail.trade.order_list" 
+             :key="order.order.order_no" 
+             class="order-section"
         >
-          <img :src="product.image" :alt="product.name">
-          <div class="product-info">
-            <div class="product-name">{{ product.name }}</div>
-            <div class="product-specs">
-              <el-tag size="small" type="info">{{ product.specs.color }}</el-tag>
-              <el-tag size="small" type="info">{{ product.specs.memory }}</el-tag>
-              <el-tag size="small" type="info">{{ product.specs.storage }}</el-tag>
-            </div>
-            <div class="product-price">
-              <span class="price">¥{{ product.price.toFixed(2) }}</span>
-              <span class="quantity">x{{ product.quantity }}</span>
+          <div v-if="order.order_item_list && order.order_item_list.length > 0" 
+               class="product-list"
+          >
+            <div v-for="item in order.order_item_list" 
+                 :key="item.id" 
+                 class="product-item"
+            >
+              <el-image 
+                :src="item.sku_img_url || '/placeholder.png'" 
+                fit="cover"
+                class="product-image"
+              >
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+              <div class="product-info">
+                <h4>{{ item.spu_name }}</h4>
+                <div class="specs">
+                  <el-tag 
+                    v-for="spec in item.spec_value_list" 
+                    :key="spec.id"
+                    size="small"
+                    type="info"
+                    effect="plain"
+                  >
+                    {{ spec.spec_name }}: {{ spec.spec_value }}
+                  </el-tag>
+                </div>
+                <div class="price-qty">
+                  <span class="price">¥{{ item.sku_amount }}</span>
+                  <span class="quantity">x{{ item.buy_num || 1 }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </el-card>
 
-      <div class="order-footer">
-        <div class="order-amount">
-          共{{ order.totalItems }}件商品，小计：
-          <span class="price">¥{{ order.totalAmount.toFixed(2) }}</span>
+      <!-- 支付信息 -->
+      <el-card class="detail-card">
+        <template #header>
+          <div class="card-header">
+            <span>支付信息</span>
+          </div>
+        </template>
+        <div class="payment-info">
+          <div class="amount-item">
+            <span>实付金额：</span>
+            <span class="total-amount">¥{{ tradeDetail.trade.trade.trade_amount }}</span>
+          </div>
+          
+          <!-- 待支付状态显示操作按钮 -->
+          <div v-if="tradeDetail.trade.trade.trade_status === 'paying'" class="payment-actions">
+            <el-button type="primary" @click="handlePay">继续支付</el-button>
+            <el-button type="danger" @click="handleCancel">取消交易</el-button>
+          </div>
         </div>
-        <div class="order-actions">
-          <el-button 
-            v-if="order.status === '待收货'"
-            type="primary"
-            @click="confirmReceipt(order)"
-          >
-            确认收货
-          </el-button>
-        </div>
-      </div>
-    </el-card>
+      </el-card>
+    </template>
 
-    <!-- 交易金额信息 -->
-    <el-card class="amount-card">
-      <div class="amount-info">
-        <div class="amount-item">
-          <span class="label">商品总额：</span>
-          <span class="value">¥{{ trade.totalAmount.toFixed(2) }}</span>
-        </div>
-        <div class="amount-item">
-          <span class="label">运费：</span>
-          <span class="value">¥0.00</span>
-        </div>
-        <div class="amount-item total">
-          <span class="label">实付款：</span>
-          <span class="value price">¥{{ trade.totalAmount.toFixed(2) }}</span>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 交易操作 -->
-    <div class="trade-actions" v-if="trade.status === '待付款'">
-      <el-button type="primary" @click="goToPayment">立即付款</el-button>
-      <el-button type="danger" plain @click="cancelTrade">取消交易</el-button>
-    </div>
+    <!-- 加载失败 -->
+    <el-empty v-else description="交易信息加载失败" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Shop } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
+import { getTradeDetail, cancelTrade } from '../../api/orderApi'
 
 const route = useRoute()
 const router = useRouter()
+const tradeDetail = ref(null)
+const loading = ref(false)
 
-// 模拟交易数据
-const trade = ref({
-  id: 'T001',
-  createTime: '2024-03-20 14:30:00',
-  status: '待付款',
-  totalAmount: 13998.00,
-  orders: [
-    {
-      id: 'O001',
-      storeName: '华为官方旗舰店',
-      totalItems: 1,
-      totalAmount: 6999.00,
-      status: '待付款',
-      products: [
-        {
-          id: 1,
-          name: 'HUAWEI Mate 60 Pro',
-          price: 6999.00,
-          quantity: 1,
-          image: 'https://via.placeholder.com/80',
-          specs: {
-            color: '墨玉青',
-            memory: '12GB',
-            storage: '512GB'
-          }
-        }
-      ]
-    },
-    {
-      id: 'O002',
-      storeName: '小米官方旗舰店',
-      totalItems: 1,
-      totalAmount: 6999.00,
-      status: '待付款',
-      products: [
-        {
-          id: 2,
-          name: '小米14 Pro',
-          price: 6999.00,
-          quantity: 1,
-          image: 'https://via.placeholder.com/80',
-          specs: {
-            color: '黑色',
-            memory: '12GB',
-            storage: '512GB'
-          }
-        }
-      ]
+// 获取交易详情
+const fetchTradeDetail = async () => {
+  try {
+    loading.value = true
+    console.log('Fetching trade detail for:', route.params.tradeNo)
+    const response = await getTradeDetail({
+      trade_no: route.params.tradeNo
+    })
+    
+    if (response.code === 1 && response.data) {
+      tradeDetail.value = response.data
+      console.log('Trade detail loaded:', tradeDetail.value)
+    } else {
+      throw new Error(response.msg || '获取交易详情失败')
     }
-  ]
-})
-
-// 确认收货
-const confirmReceipt = (order) => {
-  ElMessageBox.confirm(
-    '确认已收到商品？',
-    '确认收货',
-    {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    ElMessage.success('确认收货成功')
-    order.status = '已完成'
-  })
+  } catch (error) {
+    console.error('Error fetching trade detail:', error)
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
 }
 
-// 跳转到收银台
-const goToPayment = () => {
+// 获取交易状态文本
+const getTradeStatusText = (status) => {
+  const statusMap = {
+    'paying': '待支付',
+    'TRADE_SUCCESS': '交易成功',
+    'TRADE_CLOSED': '交易关闭',
+    'TRADE_FINISHED': '交易完成'
+  }
+  return statusMap[status] || status
+}
+
+// 获取支付方式文本
+const getPayTypeText = (type) => {
+  const typeMap = {
+    'ALIPAY': '支付宝',
+    'WECHAT': '微信支付',
+    'BANK': '银行卡'
+  }
+  return typeMap[type] || '未支付'
+}
+
+// 继续支付
+const handlePay = () => {
   router.push({
     path: '/payment',
     query: {
-      tradeId: trade.value.id,
-      amount: trade.value.totalAmount
+      trade_no: tradeDetail.value.trade.trade.trade_no,
+      amount: tradeDetail.value.trade.trade.trade_amount
     }
   })
 }
 
 // 取消交易
-const cancelTrade = () => {
-  ElMessageBox.confirm(
-    '确定要取消该交易吗？',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+const handleCancel = async () => {
+  try {
+    await ElMessageBox.confirm('确定要取消该交易吗？', '提示', {
       type: 'warning'
+    })
+    
+    const response = await cancelTrade({
+      trade_no: tradeDetail.value.trade.trade.trade_no
+    })
+    
+    if (response.code === 1) {
+      ElMessage.success('交易已取消')
+      fetchTradeDetail() // 刷新详情
+    } else {
+      throw new Error(response.msg || '取消交易失败')
     }
-  ).then(() => {
-    ElMessage.success('交易已取消')
-    trade.value.status = '已取消'
-  })
-}
-
-// 获取交易详情
-const fetchTradeDetail = async () => {
-  // TODO: 实现获取交易详情的接口调用
-  console.log('获取交易详情', route.params.tradeId)
-}
-
-// 查看订单详情
-const viewOrderDetail = (orderId) => {
-  router.push(`/user/orders/${orderId}`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error canceling trade:', error)
+      ElMessage.error(error.message || '取消交易失败')
+    }
+  }
 }
 
 onMounted(() => {
@@ -237,6 +208,8 @@ onMounted(() => {
 <style scoped>
 .trade-detail {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
@@ -246,9 +219,7 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.info-card,
-.order-card,
-.amount-card {
+.detail-card {
   margin-bottom: 20px;
 }
 
@@ -259,61 +230,24 @@ onMounted(() => {
 }
 
 .trade-status {
-  color: var(--el-color-primary);
+  color: #f56c6c;
   font-weight: 500;
-}
-
-.info-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.info-item {
-  display: flex;
-  gap: 8px;
-}
-
-.label {
-  color: #909399;
-}
-
-.store-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.store-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.store-name {
-  font-weight: 500;
-}
-
-.product-list {
-  margin: 20px 0;
 }
 
 .product-item {
   display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
 }
 
-.product-item:hover {
-  background-color: #f5f7fa;
+.product-item:last-child {
+  border-bottom: none;
 }
 
-.product-item img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
+.product-image {
+  width: 100px;
+  height: 100px;
   border-radius: 4px;
 }
 
@@ -321,18 +255,22 @@ onMounted(() => {
   flex: 1;
 }
 
-.product-name {
-  font-size: 14px;
+.product-info h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #333;
+}
+
+.specs {
   margin-bottom: 8px;
 }
 
-.product-specs {
-  display: flex;
-  gap: 8px;
+.specs .el-tag {
+  margin-right: 8px;
   margin-bottom: 8px;
 }
 
-.product-price {
+.price-qty {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -340,55 +278,33 @@ onMounted(() => {
 
 .price {
   color: #f56c6c;
+  font-size: 18px;
   font-weight: 500;
 }
 
-.quantity {
-  color: #909399;
-}
-
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 15px;
-  margin-top: 15px;
-  border-top: 1px dashed #eee;
-}
-
-.amount-info {
+.payment-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   align-items: flex-end;
+  gap: 16px;
 }
 
 .amount-item {
-  display: flex;
-  gap: 20px;
-}
-
-.amount-item.total {
   font-size: 16px;
-  font-weight: 500;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #eee;
 }
 
-.trade-actions {
+.total-amount {
+  color: #f56c6c;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.payment-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
 }
 
-.section-title {
-  font-size: 14px;
-  color: #303133;
-  font-weight: 500;
-  margin-bottom: 16px;
-  padding-left: 8px;
-  border-left: 4px solid var(--el-color-primary);
+.loading-container {
+  padding: 20px;
 }
 </style> 
