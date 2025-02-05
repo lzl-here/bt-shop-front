@@ -7,7 +7,7 @@
   "paths": {
     "/order/create_trade": {
       "post": {
-        "summary": "创建交易",
+        "summary": "创建一笔交易",
         "operationId": "CreateTrade",
         "parameters": [
           {
@@ -28,21 +28,139 @@
           }
         }
       }
-    }
-  },
-  "definitions": {
-    "CreateTradeReq": {
-      "type": "object",
-      "properties": {
-        "token": {
-          "type": "string"
-        },
-        "trade": {
-          "$ref": "#/definitions/TradeTrade"
+    },
+    "/order/get_trade_list": {
+      "post": {
+        "summary": "查询交易列表",
+        "operationId": "GetTradeList",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetTradeListReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/GetTradeListRsp"
+            }
+          }
         }
       }
     },
-    "CreateTradeRsp": {
+    "/order/get_trade_detail": {
+      "post": {
+        "summary": "查询交易详情",
+        "operationId": "GetTradeDetail",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetTradeDetailReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/GetTradeDetailRsp"
+            }
+          }
+        }
+      }
+    },
+    "/order/get_order_detail": {
+      "post": {
+        "summary": "订单详情",
+        "operationId": "GetOrderDetail",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetOrderDetailReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/GetOrderDetailRsp"
+            }
+          }
+        }
+      }
+    },
+    "/order/cancel_trade": {
+      "post": {
+        "summary": "取消一笔交易",
+        "operationId": "CancelTrade",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CancelTradeReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/CancelTradeRsp"
+            }
+          }
+        }
+      }
+    },
+    "/order/get_order_items": {
+      "post": {
+        "summary": "查询订单项",
+        "operationId": "GetOrderItems",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetOrderItemsReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/GetOrderItemsRsp"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "GetTradeDetailReq": {
+      "type": "object",
+      "properties": {
+        "trade_no": {
+          "type": "string",
+          "description": "交易号"
+        }
+      }
+    },
+    "GetTradeDetailRsp": {
       "type": "object",
       "properties": {
         "code": {
@@ -56,16 +174,15 @@
           "type": "string"
         },
         "data": {
-          "$ref": "#/definitions/CreateTradeRspData"
+          "$ref": "#/definitions/GetTradeDetailRspData"
         }
       }
     },
-    "CreateTradeRspData": {
+    "GetTradeDetailRspData": {
       "type": "object",
       "properties": {
-        "trade_no": {
-          "type": "string",
-          "description": "电商交易号"
+        "trade": {
+          "$ref": "#/definitions/TradeTrade"
         }
       }
     },
@@ -102,6 +219,9 @@
         },
         "pay_type": {
           "type": "string"
+        },
+        "trade_status": {
+          "type": "string"
         }
       }
     },
@@ -119,21 +239,100 @@
         }
       }
     },
-    "BaseOrder": {
+    "GetOrderDetailReq": {
       "type": "object",
       "properties": {
         "order_no": {
+          "type": "string",
+          "description": "订单号"
+        }
+      }
+    },
+    "GetOrderDetailRsp": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "msg": {
           "type": "string"
         },
+        "log_id": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/definitions/GetOrderDetailRspData"
+        }
+      }
+    },
+    "GetOrderDetailRspData": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/BaseOrder"
+        },
+        "order_item_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BaseOrderItem"
+          }
+        }
+      }
+    },
+    "BaseOrder": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "spu_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "sku_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "spu_name": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "brand_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "brand_name": {
+          "type": "string"
+        },
+        "sku_img_url": {
+          "type": "string"
+        },
+        "sku_amount": {
+          "type": "string"
+        },
+        "spec_value_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BaseSpecValue"
+          }
+        },
         "trade_no": {
+          "type": "string"
+        },
+        "order_no": {
           "type": "string"
         },
         "shop_id": {
           "type": "integer",
           "format": "int64"
-        },
-        "order_amount": {
-          "type": "string"
         },
         "seller_id": {
           "type": "integer",
@@ -237,4 +436,4 @@
       }
     }
   }
-} 
+}

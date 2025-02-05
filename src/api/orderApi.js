@@ -9,10 +9,19 @@ export const createTrade = (data) => {
   })
 }
 
-// 继续支付
-export const reTrade = (data) => {
+// 获取交易列表
+export const getTradeList = (data) => {
   return request({
-    url: '/order/re_trade',
+    url: '/order/get_trade_list',
+    method: 'post',
+    data
+  })
+}
+
+// 获取交易详情
+export const getTradeDetail = (data) => {
+  return request({
+    url: '/order/get_trade_detail',
     method: 'post',
     data
   })
@@ -27,14 +36,21 @@ export const cancelTrade = (data) => {
   })
 }
 
-// 查询订单项
-export const getOrderItems = (tradeNo) => {
+// 获取订单详情
+export const getOrderDetail = (data) => {
+  return request({
+    url: '/order/get_order_detail',
+    method: 'post',
+    data
+  })
+}
+
+// 获取订单项
+export const getOrderItems = (data) => {
   return request({
     url: '/order/get_order_items',
-    method: 'get',
-    params: {
-      trade_no: tradeNo
-    }
+    method: 'post',
+    data
   })
 }
 

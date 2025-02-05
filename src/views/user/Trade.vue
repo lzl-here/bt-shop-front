@@ -1,506 +1,405 @@
 <template>
-  <div class="trades">
-    <!-- 交易状态标签 -->
-    <div class="trade-tabs">
-      <div 
-        v-for="tab in tabs" 
-        :key="tab.value"
-        :class="['tab', { active: currentTab === tab.value }]"
-        @click="currentTab = tab.value"
-      >
-        {{ tab.label }}
-      </div>
+  <div class="trade-list">
+    <h2>我的交易</h2>
+    
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-container">
+      <el-skeleton :rows="3" animated />
     </div>
-
-    <!-- 搜索框 -->
-    <div class="search-box">
-      <el-input
-        v-model="searchText"
-        placeholder="请输入交易号搜索"
-        class="search-input"
-      >
-        <template #append>
-          <el-button type="primary">
-            <el-icon><Search /></el-icon>
-          </el-button>
-        </template>
-      </el-input>
-    </div>
-
+    
     <!-- 交易列表 -->
-    <div class="trade-list" v-if="trades.length">
-      <div v-for="trade in trades" :key="trade.id" class="trade-item">
-        <div class="trade-header">
-          <div class="trade-info">
-            <span class="trade-time">{{ trade.createTime }}</span>
-            <span class="trade-id">交易号：{{ trade.id }}</span>
+    <template v-else>
+      <div v-if="trades.length > 0" class="trade-items">
+        <div v-for="trade in trades" :key="trade.trade.trade_no" class="trade-item">
+          <!-- 交易头部 -->
+          <div class="trade-header">
+            <span class="trade-no">交易号：{{ trade.trade.trade_no }}</span>
+            <span class="trade-status">{{ getTradeStatusText(trade.trade.trade_status) }}</span>
           </div>
-          <div class="trade-status">{{ trade.status }}</div>
-        </div>
-
-        <!-- 店铺订单列表 -->
-        <div class="store-orders">
-          <div v-for="order in trade.orders" :key="order.id" class="store-order">
-            <!-- 订单信息标题 -->
-            <div class="order-info-title">
-              <span>订单信息</span>
-            </div>
-
-            <!-- 店铺信息 -->
-            <div class="store-info">
-              <el-icon><Shop /></el-icon>
-              <span class="store-name">{{ order.storeName }}</span>
-              <span class="order-number">订单号：{{ order.id }}</span>
-            </div>
-
-            <div class="product-list">
-              <div 
-                v-for="product in order.products" 
-                :key="product.id" 
-                class="product-item"
-                @click="viewOrderDetail(order.id)"
-              >
-                <img :src="product.image" :alt="product.name">
-                <div class="product-info">
-                  <div class="product-name">{{ product.name }}</div>
-                  <div class="product-price">¥{{ product.price.toFixed(2) }}</div>
-                </div>
-                <div class="product-quantity">x{{ product.quantity }}</div>
-              </div>
-            </div>
-
-            <div class="order-footer">
-              <div class="order-amount">
-                共{{ order.totalItems }}件商品，小计：
-                <span class="price">¥{{ order.totalAmount.toFixed(2) }}</span>
-              </div>
-              <div class="order-actions">
-                <el-button 
-                  v-if="order.status === '待收货'"
-                  type="primary"
-                  @click="confirmReceipt(order)"
+          
+          <!-- 商品列表 -->
+          <div class="order-list">
+            <div v-for="order in trade.order_list" :key="order.order.order_no" class="order-item">
+              <div v-if="order.order_item_list && order.order_item_list.length > 0">
+                <div v-for="item in order.order_item_list" 
+                     :key="item.id" 
+                     class="product-info"
                 >
-                  确认收货
-                </el-button>
+                  <el-image 
+                    :src="item.sku_img_url || '/placeholder.png'" 
+                    fit="cover"
+                    class="product-image"
+                  >
+                    <template #error>
+                      <div class="image-error">
+                        <el-icon><Picture /></el-icon>
+                      </div>
+                    </template>
+                  </el-image>
+                  <div class="product-detail">
+                    <h3>{{ item.spu_name }}</h3>
+                    <div class="specs">
+                      <span v-for="spec in item.spec_value_list" 
+                            :key="spec.id"
+                            class="spec-item"
+                      >
+                        {{ spec.spec_name }}: {{ spec.spec_value }}
+                      </span>
+                    </div>
+                    <div class="price-qty">
+                      <span class="price">¥{{ item.sku_amount }}</span>
+                      <span class="quantity">x{{ item.buy_num || 1 }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="empty-item">
+                暂无商品信息
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="trade-footer">
-          <div class="trade-amount">
-            总计：<span class="price">¥{{ trade.totalAmount.toFixed(2) }}</span>
-          </div>
-          <div class="trade-actions">
-            <template v-if="trade.status === '待付款'">
+          
+          <!-- 交易底部 -->
+          <div class="trade-footer">
+            <div class="trade-amount">
+              实付金额：<span class="amount">¥{{ trade.trade.trade_amount }}</span>
+            </div>
+            <div class="trade-actions">
               <el-button 
+                v-if="trade.trade.trade_status === 'paying'"
                 type="primary" 
-                @click="goToPayment(trade)"
+                size="small"
+                @click="handlePay(trade)"
               >
-                立即付款
+                继续支付
               </el-button>
               <el-button 
+                v-if="trade.trade.trade_status === 'paying'"
                 type="danger" 
-                plain
-                @click="cancelTrade(trade)"
+                size="small"
+                @click="handleCancel(trade)"
               >
                 取消交易
               </el-button>
-            </template>
-            <el-button type="primary" link @click="viewTradeDetail(trade.id)">
-              交易详情
-            </el-button>
+              <el-button 
+                type="primary" 
+                plain
+                size="small"
+                @click="handleDetail(trade)"
+              >
+                查看详情
+              </el-button>
+            </div>
           </div>
         </div>
+        
+        <!-- 分页器 -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            background
+          />
+        </div>
       </div>
-    </div>
-
-    <!-- 空状态 -->
-    <el-empty
-      v-else
-      description="暂无交易"
-    />
-
-    <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, prev, pager, next, sizes"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
+      
+      <!-- 空状态 -->
+      <el-empty v-else description="暂无交易" />
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Search, Shop } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
+import { getTradeList, cancelTrade } from '../../api/orderApi'
 
 const router = useRouter()
-
-// 交易状态标签
-const tabs = [
-  { label: '全部交易', value: 'all' },
-  { label: '待付款', value: 'unpaid' },
-  { label: '待发货', value: 'unshipped' },
-  { label: '待收货', value: 'unreceived' },
-  { label: '已完成', value: 'completed' }
-]
-
-const currentTab = ref('all')
-const searchText = ref('')
+const trades = ref([])
+const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(10) // 默认每页显示10条
 const total = ref(0)
 
-// 模拟交易数据
-const mockTrades = Array.from({ length: 36 }, (_, index) => ({
-  id: `T${String(index + 1).padStart(3, '0')}`,
-  createTime: '2024-03-20 14:30:00',
-  status: ['待付款', '待发货', '待收货', '已完成', '已取消'][index % 5],
-  totalAmount: 13998.00,
-  orders: [
-    {
-      id: `O${String(index * 2 + 1).padStart(3, '0')}`,
-      storeName: '华为官方旗舰店',
-      totalItems: 1,
-      totalAmount: 6999.00,
-      status: ['待付款', '待发货', '待收货', '已完成', '已取消'][index % 5],
-      products: [
-        {
-          id: index * 2 + 1,
-          name: 'HUAWEI Mate 60 Pro',
-          price: 6999.00,
-          quantity: 1,
-          image: 'https://via.placeholder.com/80'
-        }
-      ]
-    },
-    {
-      id: `O${String(index * 2 + 2).padStart(3, '0')}`,
-      storeName: '小米官方旗舰店',
-      totalItems: 1,
-      totalAmount: 6999.00,
-      status: ['待付款', '待发货', '待收货', '已完成', '已取消'][index % 5],
-      products: [
-        {
-          id: index * 2 + 2,
-          name: '小米14 Pro',
-          price: 6999.00,
-          quantity: 1,
-          image: 'https://via.placeholder.com/80'
-        }
-      ]
+// 获取交易列表
+const fetchTradeList = async () => {
+  try {
+    loading.value = true
+    const response = await getTradeList({
+      page_no: currentPage.value,
+      page_size: pageSize.value // 传递页大小参数
+    })
+    
+    if (response.code === 1 && response.data) {
+      trades.value = response.data.trade_list || []
+      total.value = response.data.count || 0
+      
+      // 如果当前页没有数据且不是第一页，回到上一页
+      if (trades.value.length === 0 && currentPage.value > 1) {
+        currentPage.value--
+        fetchTradeList()
+      }
+    } else {
+      throw new Error(response.msg || '获取交易列表失败')
     }
-  ]
-}))
-
-// 根据当前标签筛选交易
-const trades = computed(() => {
-  let filteredTrades = mockTrades
-  if (currentTab.value !== 'all') {
-    const statusMap = {
-      unpaid: '待付款',
-      unshipped: '待发货',
-      unreceived: '待收货',
-      completed: '已完成'
-    }
-    filteredTrades = mockTrades.filter(trade => trade.status === statusMap[currentTab.value])
+  } catch (error) {
+    console.error('Error fetching trade list:', error)
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
   }
-  if (searchText.value) {
-    filteredTrades = filteredTrades.filter(trade => 
-      trade.id.toLowerCase().includes(searchText.value.toLowerCase())
-    )
-  }
-  total.value = filteredTrades.length
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredTrades.slice(start, start + pageSize.value)
-})
-
-// 确认收货
-const confirmReceipt = (order) => {
-  ElMessageBox.confirm(
-    '确认已收到商品？',
-    '确认收货',
-    {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    ElMessage.success('确认收货成功')
-    order.status = '已完成'
-  })
 }
 
-// 跳转到收银台
-const goToPayment = (trade) => {
+// 获取交易状态文本
+const getTradeStatusText = (status) => {
+  const statusMap = {
+    'paying': '待支付',
+    'TRADE_SUCCESS': '交易成功',
+    'TRADE_CLOSED': '交易关闭',
+    'TRADE_FINISHED': '交易完成'
+  }
+  return statusMap[status] || status
+}
+
+// 获取订单商品信息
+const getOrderItems = (order) => {
+  return order.order_item_list || []
+}
+
+// 继续支付
+const handlePay = (trade) => {
   router.push({
     path: '/payment',
     query: {
-      tradeId: trade.id,
-      amount: trade.totalAmount
+      trade_no: trade.trade.trade_no,
+      amount: trade.trade.trade_amount,
+      subject: trade.order_list[0].order_item_list?.[0]?.spu_name + 
+              (trade.order_list.length > 1 ? ` 等${trade.order_list.length}件商品` : '')
     }
   })
 }
 
 // 取消交易
-const cancelTrade = (trade) => {
-  ElMessageBox.confirm(
-    '确定要取消该交易吗？',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+const handleCancel = async (trade) => {
+  try {
+    await ElMessageBox.confirm('确定要取消该交易吗？', '提示', {
       type: 'warning'
+    })
+    
+    const response = await cancelTrade({
+      trade_no: trade.trade.trade_no
+    })
+    
+    if (response.code === 1) {
+      ElMessage.success('交易已取消')
+      fetchTradeList() // 刷新列表
+    } else {
+      throw new Error(response.msg || '取消交易失败')
     }
-  ).then(() => {
-    ElMessage.success('交易已取消')
-    trade.status = '已取消'
-  })
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error canceling trade:', error)
+      ElMessage.error(error.message || '取消交易失败')
+    }
+  }
 }
 
-// 查看订单详情
-const viewOrderDetail = (orderId) => {
-  router.push(`/user/orders/${orderId}`)
+// 查看详情
+const handleDetail = (trade) => {
+  router.push(`/user/trades/${trade.trade.trade_no}`)
 }
 
-// 查看交易详情（保留此功能用于交易详情按钮）
-const viewTradeDetail = (tradeId) => {
-  router.push(`/user/trades/${tradeId}`)
-}
-
-// 分页相关
-const handleCurrentChange = (val) => {
-  currentPage.value = val
-}
-
+// 处理每页条数变化
 const handleSizeChange = (val) => {
   pageSize.value = val
+  currentPage.value = 1 // 重置到第一页
+  fetchTradeList()
 }
+
+// 处理页码变化
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchTradeList()
+}
+
+onMounted(() => {
+  fetchTradeList()
+})
 </script>
 
 <style scoped>
-.trades {
+.trade-list {
   padding: 20px;
 }
 
-.trade-tabs {
-  display: flex;
-  gap: 40px;
-  margin-bottom: 20px;
-  background: #fff;
-  padding: 0 20px;
-  border-radius: 4px;
-}
-
-.tab {
-  padding: 15px 0;
-  cursor: pointer;
-  position: relative;
-  color: #606266;
-}
-
-.tab.active {
-  color: var(--el-color-primary);
-  font-weight: 500;
-}
-
-.tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: var(--el-color-primary);
-}
-
-.search-box {
-  margin-bottom: 20px;
-}
-
-.search-input {
-  width: 300px;
+.trade-items {
+  margin-top: 20px;
 }
 
 .trade-item {
   background: #fff;
   border-radius: 8px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .trade-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
 }
 
-.trade-info {
-  display: flex;
-  gap: 20px;
-  color: #909399;
-  font-size: 14px;
+.trade-no {
+  color: #666;
 }
 
 .trade-status {
-  font-weight: 500;
-  color: var(--el-color-primary);
-}
-
-.store-orders {
-  padding: 0 20px;
-}
-
-.store-order {
-  padding: 20px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.store-order:last-child {
-  border-bottom: none;
-}
-
-.store-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  padding-left: 20px;
-}
-
-.store-name {
+  color: #f56c6c;
   font-weight: 500;
 }
 
-.order-number {
-  color: #909399;
+.order-list {
+  padding: 16px 0;
 }
 
-.product-list {
-  margin-left: 20px;
+.order-item {
+  margin-bottom: 16px;
 }
 
-.product-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.product-item:hover {
-  background-color: #f5f7fa;
-}
-
-.product-item:last-child {
-  border-bottom: none;
-}
-
-.product-item img {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
+.order-item:last-child {
+  margin-bottom: 0;
 }
 
 .product-info {
-  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 
-.product-name {
-  font-size: 14px;
-  color: #303133;
+.product-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
-.product-price {
-  font-size: 14px;
-  color: #f56c6c;
-}
-
-.product-quantity {
+.image-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f7fa;
   color: #909399;
-  font-size: 14px;
-  margin-right: 20px;
 }
 
-.order-footer {
+.product-detail {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-detail h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.specs {
+  margin-bottom: 8px;
+}
+
+.spec-item {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+.price-qty {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
-  margin-top: 15px;
-  border-top: 1px dashed #eee;
+}
+
+.price {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.quantity {
+  color: #666;
 }
 
 .trade-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
 }
 
 .trade-amount {
-  font-size: 16px;
+  color: #666;
 }
 
-.trade-amount .price {
-  font-size: 20px;
+.amount {
   color: #f56c6c;
-  font-weight: bold;
-}
-
-.order-amount .price {
-  color: #f56c6c;
+  font-size: 18px;
   font-weight: 500;
 }
 
-.trade-actions,
-.order-actions {
+.trade-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.pagination {
+.empty-item {
+  text-align: center;
+  color: #909399;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.loading-container {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-container {
+  margin-top: 20px;
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.order-info-title {
-  font-size: 14px;
-  color: #606266;
-  font-weight: 500;
-  margin-bottom: 12px;
-  padding-left: 20px;
-  position: relative;
-}
-
-.order-info-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 14px;
-  background-color: var(--el-color-primary);
-  border-radius: 2px;
+.trade-list h2 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  color: #333;
 }
 </style> 
