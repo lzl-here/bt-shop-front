@@ -35,39 +35,51 @@
           <div class="login-content">
             <!-- 账号密码登录 -->
             <div v-show="loginType === 'account'" class="account-form">
-              <el-form ref="loginForm" :model="loginForm" :rules="rules">
-                <el-form-item prop="username">
-                  <el-input
-                    v-model="loginForm.username"
-                    placeholder="请输入用户名"
-                    :prefix-icon="User"
-                  />
-                </el-form-item>
-                
-                <el-form-item prop="password">
-                  <el-input
-                    v-model="loginForm.password"
-                    type="password"
-                    placeholder="请输入密码"
-                    :prefix-icon="Lock"
-                    show-password
-                  />
-                </el-form-item>
-
-                <div class="form-options">
-                  <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-                  <a class="forget-link">忘记密码？</a>
+              <div class="form-item">
+                <div class="form-label">
+                  <span class="required">*</span>
+                  用户名
                 </div>
-
-                <el-button 
-                  type="primary" 
-                  class="submit-btn" 
-                  :loading="loading"
-                  @click="handleLogin"
+                <input
+                  v-model="username"
+                  type="text"
+                  placeholder="请输入用户名"
+                  class="input"
                 >
-                  登录
-                </el-button>
-              </el-form>
+              </div>
+              
+              <div class="form-item">
+                <div class="form-label">
+                  <span class="required">*</span>
+                  密码
+                </div>
+                <input
+                  v-model="password"
+                  type="password"
+                  placeholder="请输入密码"
+                  class="input"
+                >
+              </div>
+
+              <div class="form-options">
+                <label class="remember-me">
+                  <input 
+                    type="checkbox"
+                    v-model="rememberMe"
+                    class="checkbox"
+                  >
+                  <span>记住我</span>
+                </label>
+                <a class="forget-link">忘记密码？</a>
+              </div>
+
+              <button 
+                class="submit-btn"
+                :disabled="loading"
+                @click="handleLogin"
+              >
+                {{ loading ? '登录中...' : '登录' }}
+              </button>
             </div>
 
             <!-- 微信扫码登录 -->
@@ -78,9 +90,9 @@
                   :image-size="120"
                 >
                   <template #extra>
-                    <el-button type="primary" @click="retryGenerateQrcode">
+                    <button class="retry-btn" @click="retryGenerateQrcode">
                       重试
-                    </el-button>
+                    </button>
                   </template>
                 </el-empty>
               </div>
@@ -88,11 +100,11 @@
                 <div ref="qrcodeRef" class="qrcode"></div>
                 <div v-if="qrcodeExpired" class="qrcode-mask">
                   <p>二维码已过期</p>
-                  <el-button type="primary" @click="refreshQrcode">刷新</el-button>
+                  <button class="refresh-btn" @click="refreshQrcode">刷新</button>
                 </div>
               </div>
               <p class="scan-tip">
-                <el-icon><Iphone /></el-icon>
+                <i class="iconfont icon-wechat"></i>
                 请使用微信扫一扫登录
               </p>
             </div>
@@ -114,10 +126,8 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Iphone } from '@element-plus/icons-vue'
-import QRCode from 'qrcode'
-import { useUserStore } from '../stores/user'
 import { login, getWechatQrcode, checkWechatLogin } from '../api/userApi'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -126,30 +136,30 @@ const loading = ref(false)
 const qrcodeRef = ref(null)
 const qrcodeExpired = ref(false)
 const checkTimer = ref(null)
-const rememberMe = ref(false)
 const qrcodeError = ref(false)
 
-const loginForm = ref({
-  username: '',
-  password: ''
-})
+// 使用独立的响应式变量替代表单对象
+const username = ref('')
+const password = ref('')
+const rememberMe = ref(false)
 
-const rules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' }
-  ]
-}
-
-// 账号密码登录
 const handleLogin = async () => {
+  if (!username.value || !password.value) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+
   try {
     loading.value = true
-    const response = await login(loginForm.value)
+    const response = await login({
+      username: username.value,
+      password: password.value
+    })
+    
     if (response.code === 1) {
-      await userStore.setUserInfo(response.data)
+      // 更新用户信息到 store
+      userStore.setUserInfo(response.data.user)
+      
       ElMessage.success('登录成功')
       router.push('/')
     } else {
@@ -167,48 +177,17 @@ const handleLogin = async () => {
 const generateQrcode = async () => {
   try {
     qrcodeError.value = false
-    const response = await getWechatQrcode()
-    if (response.code === 1 && response.data) {
-      const { qrcode_url, scene_str } = response.data
-      await QRCode.toCanvas(qrcodeRef.value, qrcode_url, {
-        width: 200,
-        margin: 1
-      })
-      startCheckLogin(scene_str)
-    } else {
-      throw new Error(response.msg || '获取二维码失败')
-    }
+    ElMessage.warning('微信登录功能暂未开放')
+    qrcodeError.value = true
   } catch (error) {
     console.error('Generate QR code error:', error)
     qrcodeError.value = true
-    ElMessage.error(error.message || '获取二维码失败')
   }
 }
 
 // 开始轮询检查登录状态
-const startCheckLogin = (sceneStr) => {
-  qrcodeExpired.value = false
-  if (checkTimer.value) {
-    clearInterval(checkTimer.value)
-  }
-  checkTimer.value = setInterval(async () => {
-    try {
-      const response = await checkWechatLogin({ scene_str: sceneStr })
-      if (response.code === 1) {
-        if (response.data.status === 'SUCCESS') {
-          clearInterval(checkTimer.value)
-          await userStore.setUserInfo(response.data.user_info)
-          ElMessage.success('登录成功')
-          router.push('/')
-        } else if (response.data.status === 'EXPIRED') {
-          clearInterval(checkTimer.value)
-          qrcodeExpired.value = true
-        }
-      }
-    } catch (error) {
-      console.error('Check login status error:', error)
-    }
-  }, 2000)
+const startCheckLogin = () => {
+  // 暂时不实现
 }
 
 // 刷新二维码
@@ -373,8 +352,35 @@ onUnmounted(() => {
 .submit-btn {
   width: 100%;
   height: 40px;
+  background-color: #1890ff;
+  border: none;
+  border-radius: 20px;
+  color: white;
   font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
   margin-top: 24px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2);
+}
+
+.submit-btn:hover {
+  background-color: #40a9ff;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.submit-btn:active {
+  background-color: #096dd9;
+  transform: translateY(1px);
+}
+
+.submit-btn:disabled {
+  background-color: #a0cfff;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .wechat-login {
@@ -441,29 +447,52 @@ onUnmounted(() => {
   color: #40a9ff;
 }
 
-:deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
+.form-item {
+  margin-bottom: 24px;
 }
 
-:deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #c0c4cc inset;
+.form-label {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
 }
 
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #1890ff inset;
+.required {
+  color: #f56c6c;
+  margin-right: 4px;
 }
 
-:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background-color: #1890ff;
+.input {
+  width: 100%;
+  height: 40px;
+  padding: 0 15px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #606266;
+  transition: all 0.2s;
+  background-color: #fff;
+}
+
+.input:hover {
+  border-color: #c0c4cc;
+}
+
+.input:focus {
+  outline: none;
   border-color: #1890ff;
 }
 
-:deep(.el-button--primary) {
-  background-color: #1890ff;
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
 }
 
-:deep(.el-button--primary:hover) {
-  background-color: #40a9ff;
+.checkbox {
+  margin: 0;
 }
 
 .qrcode-error {

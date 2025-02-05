@@ -1,62 +1,66 @@
 import request from './axios'
 
-// 用户登录
+// 普通登录
 export const login = (data) => {
   return request({
     url: '/user/login',
     method: 'post',
-    data
+    data: {
+      username: data.username,
+      password: data.password
+    }
   })
 }
 
-// 获取微信登录二维码
-export const getWechatQrcode = () => {
-  return request({
-    url: '/user/wechat/qrcode',
-    method: 'get'
-  })
-}
-
-// 检查微信扫码登录状态
-export const checkWechatLogin = (data) => {
-  return request({
-    url: '/user/wechat/check',
-    method: 'post',
-    data
-  })
-}
-
-// 用户注册
+// 普通注册
 export const register = (data) => {
   return request({
     url: '/user/register',
     method: 'post',
-    data
+    data: {
+      username: data.username,
+      password: data.password,
+      confirm_password: data.confirmPassword
+    }
+  })
+}
+
+// 退出登录
+export const logout = (userId) => {
+  return request({
+    url: '/user/logout',
+    method: 'post',
+    data: {
+      user_id: userId
+    }
   })
 }
 
 // 获取用户信息
-export const getUserInfo = () => {
+export const getUserInfo = (userId) => {
   return request({
-    url: '/user/info',
-    method: 'get'
+    url: '/user/get_user_info',
+    method: 'post',
+    data: {
+      user_id: userId
+    }
   })
 }
 
 // 更新用户信息
 export const updateUserInfo = (data) => {
   return request({
-    url: '/user/info',
-    method: 'put',
+    url: '/user/update_user_info',
+    method: 'post',
     data
   })
 }
 
-// 修改密码
-export const changePassword = (data) => {
-  return request({
-    url: '/user/password',
-    method: 'put',
-    data
-  })
+// 微信登录相关接口（暂时模拟）
+export const getWechatQrcode = () => {
+  return Promise.reject(new Error('微信登录功能暂未开放'))
+}
+
+export const checkWechatLogin = () => {
+  return Promise.reject(new Error('微信登录功能暂未开放'))
 } 

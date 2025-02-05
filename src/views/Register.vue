@@ -15,60 +15,54 @@
           </div>
 
           <div class="form-content">
-            <el-form 
-              ref="registerForm" 
-              :model="registerForm" 
-              :rules="rules"
-              label-position="top"
-            >
-              <el-form-item 
-                label="用户名" 
-                prop="username"
+            <div class="form-item">
+              <div class="form-label">
+                <span class="required">*</span>
+                用户名
+              </div>
+              <input
+                v-model="username"
+                type="text"
+                placeholder="请输入用户名"
+                class="input"
               >
-                <el-input
-                  v-model="registerForm.username"
-                  placeholder="请输入用户名"
-                  :prefix-icon="User"
-                />
-              </el-form-item>
-              
-              <el-form-item 
-                label="密码" 
-                prop="password"
+              <div class="form-tip">长度在 3 到 20 个字符</div>
+            </div>
+            
+            <div class="form-item">
+              <div class="form-label">
+                <span class="required">*</span>
+                密码
+              </div>
+              <input
+                v-model="password"
+                type="password"
+                placeholder="请输入密码"
+                class="input"
               >
-                <el-input
-                  v-model="registerForm.password"
-                  type="password"
-                  placeholder="请输入密码"
-                  :prefix-icon="Lock"
-                  show-password
-                />
-              </el-form-item>
-              
-              <el-form-item 
-                label="确认密码" 
-                prop="confirmPassword"
+              <div class="form-tip">密码长度不能小于6位</div>
+            </div>
+            
+            <div class="form-item">
+              <div class="form-label">
+                <span class="required">*</span>
+                确认密码
+              </div>
+              <input
+                v-model="confirmPassword"
+                type="password"
+                placeholder="请再次输入密码"
+                class="input"
               >
-                <el-input
-                  v-model="registerForm.confirmPassword"
-                  type="password"
-                  placeholder="请再次输入密码"
-                  :prefix-icon="Lock"
-                  show-password
-                />
-              </el-form-item>
+            </div>
 
-              <el-form-item>
-                <el-button 
-                  type="primary" 
-                  class="submit-btn" 
-                  :loading="loading"
-                  @click="handleRegister"
-                >
-                  注册
-                </el-button>
-              </el-form-item>
-            </el-form>
+            <button 
+              class="submit-btn"
+              :disabled="loading"
+              @click="handleRegister"
+            >
+              {{ loading ? '注册中...' : '注册' }}
+            </button>
           </div>
 
           <div class="form-footer">
@@ -87,66 +81,31 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
 import { register } from '../api/userApi'
 
 const router = useRouter()
 const loading = ref(false)
-const registerForm = ref({
-  username: '',
-  password: '',
-  confirmPassword: ''
-})
-
-// 自定义校验密码
-const validatePass = (rule, value, callback) => {
-  if (value === '') {
-    callback(new Error('请输入密码'))
-  } else {
-    if (registerForm.value.confirmPassword !== '') {
-      registerFormRef.value.validateField('confirmPassword')
-    }
-    callback()
-  }
-}
-
-// 自定义校验确认密码
-const validatePass2 = (rule, value, callback) => {
-  if (value === '') {
-    callback(new Error('请再次输入密码'))
-  } else if (value !== registerForm.value.password) {
-    callback(new Error('两次输入密码不一致'))
-  } else {
-    callback()
-  }
-}
-
-const rules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, validator: validatePass, trigger: 'blur' },
-    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, validator: validatePass2, trigger: 'blur' }
-  ]
-}
-
-const registerFormRef = ref(null)
+const username = ref('')
+const password = ref('')
+const confirmPassword = ref('')
 
 const handleRegister = async () => {
-  if (!registerFormRef.value) return
+  if (!username.value || !password.value || !confirmPassword.value) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+  
+  if (password.value !== confirmPassword.value) {
+    ElMessage.warning('两次输入的密码不一致')
+    return
+  }
   
   try {
-    await registerFormRef.value.validate()
     loading.value = true
-    
     const response = await register({
-      username: registerForm.value.username,
-      password: registerForm.value.password
+      username: username.value,
+      password: password.value,
+      confirmPassword: confirmPassword.value
     })
     
     if (response.code === 1) {
@@ -156,9 +115,7 @@ const handleRegister = async () => {
       throw new Error(response.msg || '注册失败')
     }
   } catch (error) {
-    if (error.message) {
-      ElMessage.error(error.message)
-    }
+    ElMessage.error(error.message || '注册失败')
   } finally {
     loading.value = false
   }
@@ -234,11 +191,82 @@ const handleRegister = async () => {
   margin-top: 24px;
 }
 
+.form-item {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.required {
+  color: #f56c6c;
+  margin-right: 4px;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.input {
+  width: 100%;
+  height: 40px;
+  padding: 0 15px;
+  border: 1px solid #dcdfe6;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #606266;
+  transition: all 0.2s;
+  background-color: #fff;
+}
+
+.input:hover {
+  border-color: #c0c4cc;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
 .submit-btn {
   width: 100%;
   height: 40px;
+  background-color: #1890ff;
+  border: none;
+  border-radius: 20px;
+  color: white;
   font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
   margin-top: 24px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2);
+}
+
+.submit-btn:hover {
+  background-color: #40a9ff;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.submit-btn:active {
+  background-color: #096dd9;
+  transform: translateY(1px);
+}
+
+.submit-btn:disabled {
+  background-color: #a0cfff;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .form-footer {
@@ -259,31 +287,5 @@ const handleRegister = async () => {
 
 .login-link:hover {
   color: #40a9ff;
-}
-
-:deep(.el-form-item__label) {
-  padding-bottom: 4px;
-  font-size: 14px;
-  color: #666;
-}
-
-:deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
-}
-
-:deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #c0c4cc inset;
-}
-
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #1890ff inset;
-}
-
-:deep(.el-button--primary) {
-  background-color: #1890ff;
-}
-
-:deep(.el-button--primary:hover) {
-  background-color: #40a9ff;
 }
 </style> 
