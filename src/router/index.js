@@ -51,7 +51,7 @@ const routes = [
   },
   {
     path: '/user',
-    component: User,
+    component: () => import('../views/User.vue'),
     meta: { requiresAuth: true },
     children: [
       {
@@ -184,16 +184,17 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
+// 导航守卫
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  const storeStore = useStoreStore()
   
-  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login')
-  } else if (to.meta.requiresStore && !storeStore.hasStore) {
-    if (to.path !== '/seller/apply') {
-      next('/seller/apply')
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    // 检查用户是否已登录
+    if (!userStore.userInfo) {
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      })
     } else {
       next()
     }

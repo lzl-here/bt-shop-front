@@ -5,7 +5,7 @@ import { useCartStore } from './stores/cart'
 import FooterComponent from './components/FooterComponent.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -51,6 +51,20 @@ const handleCommand = async (command) => {
       break
   }
 }
+
+onMounted(() => {
+  // 从 localStorage 恢复用户信息
+  const savedUserInfo = localStorage.getItem('userInfo')
+  if (savedUserInfo) {
+    try {
+      const userInfo = JSON.parse(savedUserInfo)
+      userStore.setUserInfo(userInfo)
+    } catch (error) {
+      console.error('Failed to parse user info:', error)
+      localStorage.removeItem('userInfo')
+    }
+  }
+})
 </script>
 
 <template>
@@ -94,25 +108,25 @@ const handleCommand = async (command) => {
           </router-link>
         </div>
 
-        <!-- 用户操作区 -->
-        <div class="user-actions">
-          <!-- 购物车图标 -->
+        <div class="nav-right">
           <router-link to="/cart" class="cart-link">
-            <el-badge :value="cartStore.totalItems" :hidden="!cartStore.totalItems">
-              <el-icon :size="24"><ShoppingCart /></el-icon>
+            <el-badge :value="cartStore.totalCount" :hidden="!cartStore.totalCount">
+              <el-icon><ShoppingCart /></el-icon>
             </el-badge>
           </router-link>
 
-          <!-- 用户登录状态 -->
-          <template v-if="!userStore.isLoggedIn">
+          <!-- 用户未登录时显示登录注册按钮 -->
+          <template v-if="!userStore.userInfo">
             <router-link to="/login" class="login-btn">登录</router-link>
             <router-link to="/register" class="register-btn">注册</router-link>
           </template>
+
+          <!-- 用户已登录时显示用户信息 -->
           <el-dropdown v-else @command="handleCommand">
-            <span class="user-info">
-              <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/default-avatar.png'" />
-              <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
-            </span>
+            <div class="user-info">
+              <img :src="userStore.userInfo.avatar_url" class="avatar" alt="avatar">
+              <span class="username">{{ userStore.userInfo.username }}</span>
+            </div>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人中心</el-dropdown-item>
@@ -126,14 +140,8 @@ const handleCommand = async (command) => {
     </header>
 
     <!-- 主要内容区域 -->
-    <main class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <keep-alive>
-            <component :is="Component" />
-          </keep-alive>
-        </transition>
-      </router-view>
+    <main class="main">
+      <router-view></router-view>
     </main>
 
     <!-- 页脚 -->
@@ -206,44 +214,10 @@ const handleCommand = async (command) => {
   background-color: var(--el-color-primary-light-9);
 }
 
-.user-actions {
+.nav-right {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-
-.cart-link {
-  color: #333;
-  transition: color 0.3s;
-}
-
-.cart-link:hover {
-  color: var(--el-color-primary);
-}
-
-.login-btn,
-.register-btn {
-  padding: 8px 16px;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.login-btn {
-  border: 1px solid var(--el-color-primary);
-  color: var(--el-color-primary);
-}
-
-.register-btn {
-  background-color: var(--el-color-primary);
-  color: #fff;
-}
-
-.login-btn:hover {
-  background-color: var(--el-color-primary-light-9);
-}
-
-.register-btn:hover {
-  background-color: var(--el-color-primary-light-3);
 }
 
 .user-info {
@@ -251,11 +225,64 @@ const handleCommand = async (command) => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.user-info:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .username {
-  font-size: 14px;
   color: #333;
+  font-size: 14px;
+}
+
+.login-btn,
+.register-btn {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.login-btn {
+  color: #1890ff;
+  border: 1px solid #1890ff;
+}
+
+.login-btn:hover {
+  background-color: #e6f7ff;
+}
+
+.register-btn {
+  background-color: #1890ff;
+  color: white;
+}
+
+.register-btn:hover {
+  background-color: #40a9ff;
+}
+
+.cart-link {
+  color: #666;
+  font-size: 24px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.cart-link:hover {
+  color: #1890ff;
 }
 
 /* 让路由视图占据剩余空间 */

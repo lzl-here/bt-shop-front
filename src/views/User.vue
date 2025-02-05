@@ -1,126 +1,138 @@
 <template>
-  <div class="user-container">
-    <!-- 左侧导航 -->
+  <div class="user-layout">
+    <!-- 侧边栏 -->
     <div class="sidebar">
-      <div class="menu-group">
-        <div class="menu-title">个人中心</div>
-        <router-link 
-          to="/user/profile" 
-          class="menu-item"
-          active-class="active"
-        >
-          <el-icon><UserFilled /></el-icon>
-          个人资料
-        </router-link>
-        <router-link 
-          to="/user/trades" 
-          class="menu-item"
-          active-class="active"
-        >
-          <el-icon><Document /></el-icon>
-          我的交易
-        </router-link>
-        <router-link 
-          to="/user/address" 
-          class="menu-item"
-          active-class="active"
-        >
+      <div class="user-card">
+        <div class="avatar">
+          <img :src="userStore.userInfo?.avatar_url" alt="avatar">
+        </div>
+        <div class="user-info">
+          <h3>{{ userStore.userInfo?.username }}</h3>
+          <el-tag size="small" :type="userStore.userInfo?.register_type === 'normal' ? 'primary' : 'success'">
+            {{ userStore.userInfo?.register_type === 'normal' ? '普通用户' : '微信用户' }}
+          </el-tag>
+        </div>
+        <div class="user-details">
+          <div class="detail-item">
+            <span class="label">用户ID:</span>
+            <span class="value">{{ userStore.userInfo?.id }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">注册方式:</span>
+            <span class="value">{{ userStore.userInfo?.register_type === 'normal' ? '普通注册' : '微信注册' }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <el-menu
+        :default-active="activeMenu"
+        class="menu"
+        router
+      >
+        <el-menu-item index="/user">
+          <el-icon><User /></el-icon>
+          <span>个人中心</span>
+        </el-menu-item>
+        <el-menu-item index="/user/trades">
+          <el-icon><List /></el-icon>
+          <span>我的交易</span>
+        </el-menu-item>
+        <el-menu-item index="/user/address">
           <el-icon><Location /></el-icon>
-          收货地址
-        </router-link>
-      </div>
-
-      <div class="menu-group">
-        <div class="menu-title">账户设置</div>
-        <router-link 
-          to="/user/security" 
-          class="menu-item"
-          active-class="active"
-        >
+          <span>收货地址</span>
+        </el-menu-item>
+        <el-menu-item index="/user/security">
           <el-icon><Lock /></el-icon>
-          账户安全
-        </router-link>
-      </div>
+          <span>账号安全</span>
+        </el-menu-item>
+      </el-menu>
     </div>
 
-    <!-- 右侧内容区域 -->
+    <!-- 主内容区 -->
     <div class="main-content">
-      <router-view v-if="$route.matched.length > 1"></router-view>
-      <div v-else class="welcome-page">
-        <h2>欢迎来到个人中心</h2>
-        <p>请从左侧菜单选择要查看的内容</p>
-      </div>
+      <router-view></router-view>
     </div>
   </div>
 </template>
 
 <script setup>
-import { UserFilled, Document, Location, Lock } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useUserStore } from '../stores/user'
+import { User, List, Location, Lock } from '@element-plus/icons-vue'
+
+const route = useRoute()
+const userStore = useUserStore()
+
+const activeMenu = computed(() => route.path)
 </script>
 
 <style scoped>
-.user-container {
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 0 20px;
+.user-layout {
   display: flex;
+  min-height: calc(100vh - 60px);
+  background: #f5f7fa;
+  padding: 20px;
   gap: 20px;
-  min-height: calc(100vh - 140px);
 }
 
 .sidebar {
-  width: 240px;
+  width: 280px;
   background: #fff;
   border-radius: 8px;
-  padding: 20px 0;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
-  position: sticky;
-  top: 80px;
-  height: fit-content;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
-.menu-group {
-  padding: 0 16px;
-  margin-bottom: 24px;
+.user-card {
+  padding: 24px;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.menu-group:last-child {
-  margin-bottom: 0;
+.avatar {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #e8e8e8;
 }
 
-.menu-title {
-  color: #909399;
-  font-size: 13px;
-  padding: 0 12px;
-  margin-bottom: 8px;
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.menu-item {
+.user-info h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #333;
+}
+
+.user-details {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.detail-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  color: #606266;
-  border-radius: 6px;
-  transition: all 0.3s;
-  margin-bottom: 4px;
-  text-decoration: none;
+  justify-content: space-between;
+  margin-bottom: 8px;
   font-size: 14px;
 }
 
-.menu-item:hover {
-  color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
+.detail-item .label {
+  color: #909399;
 }
 
-.menu-item.active {
-  color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-  font-weight: 500;
+.detail-item .value {
+  color: #606266;
 }
 
-.menu-item :deep(.el-icon) {
-  font-size: 18px;
+.menu {
+  border-right: none;
+  margin-top: 12px;
 }
 
 .main-content {
@@ -128,28 +140,30 @@ import { UserFilled, Document, Location, Lock } from '@element-plus/icons-vue'
   background: #fff;
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  min-width: 0; /* 防止内容溢出 */
 }
 
-.welcome-page {
-  text-align: center;
-  padding: 40px;
-  color: #909399;
+:deep(.el-menu-item) {
+  border-radius: 4px;
+  margin: 4px 8px;
+  height: 44px;
 }
 
-.welcome-page h2 {
+:deep(.el-menu-item.is-active) {
+  background-color: #e6f4ff;
+  color: #1890ff;
+}
+
+:deep(.el-menu-item:hover) {
+  background-color: #f5f5f5;
+}
+
+:deep(.el-menu-item .el-icon) {
+  margin-right: 10px;
+}
+
+:deep(.el-tag) {
   margin-bottom: 16px;
-  color: #606266;
-}
-
-@media screen and (max-width: 768px) {
-  .user-container {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    position: static;
-  }
 }
 </style> 
