@@ -2,19 +2,30 @@ import { defineStore } from 'pinia'
 
 export const useStoreStore = defineStore('store', {
   state: () => ({
-    storeInfo: null,
-    hasStore: false
+    storeInfo: null
   }),
+
+  getters: {
+    hasStore: (state) => state.storeInfo !== null
+  },
 
   actions: {
     setStoreInfo(info) {
       this.storeInfo = info
-      this.hasStore = true
     },
 
     clearStoreInfo() {
       this.storeInfo = null
-      this.hasStore = false
     }
+  },
+
+  persist: {
+    enabled: true,
+    strategies: [
+      {
+        key: 'store_info',
+        storage: localStorage
+      }
+    ]
   }
 }) 

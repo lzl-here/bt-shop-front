@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import { useUserStore } from '../stores/user'
 import { useStoreStore } from '../stores/store'
+import { getShopDetail } from '../api/userApi'
+import { ElMessage } from 'element-plus'
 
 // 预导入关键组件
 import User from '../views/User.vue'
@@ -106,8 +108,8 @@ const routes = [
   },
   {
     path: '/seller',
-    component: SellerDashboard,
-    meta: { requiresAuth: true },
+    component: () => import('../views/seller/SellerDashboard.vue'),
+    meta: { requiresAuth: true, requiresStore: true },
     children: [
       {
         path: 'order/:orderNumber',
@@ -185,9 +187,10 @@ const router = createRouter({
 })
 
 // 导航守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
-  
+  const storeStore = useStoreStore()
+
   if (to.matched.some(record => record.meta.requiresAuth)) {
     // 检查用户是否已登录
     if (!userStore.userInfo) {
@@ -195,6 +198,31 @@ router.beforeEach((to, from, next) => {
         path: '/login',
         query: { redirect: to.fullPath }
       })
+      return
+    }
+
+    // 如果需要店铺权限
+    if (to.matched.some(record => record.meta.requiresStore)) {
+      try {
+        // 获取店铺详情
+        const res = await getShopDetail()
+        if (res.code === 1) {
+          if (Object.keys(res.data).length === 0) {
+            // 未入驻，跳转到入驻页面
+            ElMessage.info('您还未入驻店铺，请先完成入驻')
+            next('/seller/apply')
+          } else {
+            // 已入驻，保存店铺信息
+            storeStore.setStoreInfo(res.data.shop)
+            next()
+          }
+        } else {
+          throw new Error(res.msg || '获取店铺信息失败')
+        }
+      } catch (error) {
+        ElMessage.error(error.message)
+        next(false)
+      }
     } else {
       next()
     }

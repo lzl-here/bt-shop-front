@@ -48,4 +48,13 @@ export const addToCart = (cartData) => {
 // 发布商品
 export const publishGoods = (goodsData) => {
   return axios.post('/goods/publish_goods', goodsData)
-} 
+}
+
+// 获取商家商品列表
+export const getSellerGoodsList = (params) => {
+  return axios.post('/goods/get_seller_goods_list', {
+    shop_id: params.shop_id,
+    page_size: params.page_size,
+    page_no: params.page_no
+  })
+}

@@ -17,13 +17,13 @@
           <!-- 第一列：主分类 -->
           <div class="category-column">
             <div
-              v-for="category in mainCategories"
-              :key="category.id"
+              v-for="category in categories"
+              :key="category.category_id"
               class="category-item"
-              :class="{ active: selectedMainCategory === category.id }"
+              :class="{ active: selectedMainCategory === category.category_id }"
               @click="selectMainCategory(category)"
             >
-              {{ category.name }}
+              {{ category.category_name }}
               <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
@@ -32,12 +32,12 @@
           <div class="category-column" v-if="subCategories.length">
             <div
               v-for="category in subCategories"
-              :key="category.id"
+              :key="category.category_id"
               class="category-item"
-              :class="{ active: selectedSubCategory === category.id }"
+              :class="{ active: selectedSubCategory === category.category_id }"
               @click="selectSubCategory(category)"
             >
-              {{ category.name }}
+              {{ category.category_name }}
               <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
@@ -46,12 +46,12 @@
           <div class="category-column" v-if="leafCategories.length">
             <div
               v-for="category in leafCategories"
-              :key="category.id"
+              :key="category.category_id"
               class="category-item"
-              :class="{ active: selectedLeafCategory === category.id }"
+              :class="{ active: selectedLeafCategory === category.category_id }"
               @click="selectLeafCategory(category)"
             >
-              {{ category.name }}
+              {{ category.category_name }}
             </div>
           </div>
         </div>
@@ -63,43 +63,42 @@
           ref="formRef"
           :model="productForm"
           :rules="rules"
-          label-width="100px"
+          label-width="120px"
         >
-          <!-- 添加品牌选择 -->
-          <el-form-item label="商品品牌" prop="brand">
-            <el-select
-              v-model="productForm.brand"
-              placeholder="请选择品牌"
-              clearable
-              filterable
-            >
-              <el-option
-                v-for="brand in brands"
-                :key="brand.id"
-                :label="brand.name"
-                :value="brand.id"
-              />
-            </el-select>
+          <el-form-item label="商品名称" required>
+            <el-input v-model="productForm.spu_name" placeholder="请输入商品名称" />
           </el-form-item>
 
-          <el-form-item label="商品名称" prop="name">
-            <el-input v-model="productForm.name" placeholder="请输入商品名称" />
-          </el-form-item>
-
-          <el-form-item label="商品价格" prop="price">
-            <el-input-number v-model="productForm.price" :min="0" :precision="2" placeholder="请输入商品价格" />
-          </el-form-item>
-
-          <el-form-item label="商品描述" prop="description">
+          <el-form-item label="商品描述" required>
             <el-input
+              v-model="productForm.spu_desc"
               type="textarea"
-              v-model="productForm.description"
               placeholder="请输入商品描述"
-              :rows="4"
             />
           </el-form-item>
 
-          <!-- 添加规格设置 -->
+          <el-form-item label="商品图片" required>
+            <el-upload
+              class="product-image-upload"
+              action="/api/upload"
+              :show-file-list="false"
+              :on-success="handleImageSuccess"
+            >
+              <img v-if="productForm.spu_img_url" :src="productForm.spu_img_url" class="preview-image">
+              <el-button v-else type="primary">上传图片</el-button>
+            </el-upload>
+          </el-form-item>
+
+          <el-form-item label="商品价格" required>
+            <el-input-number 
+              v-model="productForm.spu_price"
+              :precision="2"
+              :step="0.01"
+              :min="0"
+            />
+          </el-form-item>
+
+          <!-- 商品规格部分 -->
           <el-form-item label="商品规格" prop="specs">
             <div class="specs-section">
               <div class="specs-header">
@@ -186,18 +185,8 @@
             </div>
           </el-form-item>
 
-          <el-form-item label="商品图片" prop="images">
-            <el-upload
-              class="image-uploader"
-              action="/api/upload"
-              :show-file-list="true"
-              :on-success="handleImageSuccess"
-              :before-upload="beforeImageUpload"
-              multiple
-              list-type="picture-card"
-            >
-              <el-icon><Plus /></el-icon>
-            </el-upload>
+          <el-form-item>
+            <el-button type="primary" @click="publishProduct">发布商品</el-button>
           </el-form-item>
         </el-form>
       </div>
@@ -207,11 +196,11 @@
         <el-result
           icon="success"
           title="商品发布成功"
-          sub-title="您的商品已经成功发布，现在可以在商品列表中查看"
+          sub-title="您可以继续发布新商品或返回商品列表"
         >
           <template #extra>
-            <el-button type="primary" @click="goToProductList">查看商品列表</el-button>
-            <el-button @click="publishAnother">继续发布</el-button>
+            <el-button type="primary" @click="publishAnother">继续发布</el-button>
+            <el-button @click="$router.push('/seller/dashboard?tab=products')">返回列表</el-button>
           </template>
         </el-result>
       </div>
@@ -233,34 +222,79 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getCategoryList, publishGoods } from '../../api/goodsApi'
 
 const router = useRouter()
 const currentStep = ref(0)
+const loading = ref(false)
+
+// 分类相关
+const categories = ref([])
+const subCategories = ref([])
+const leafCategories = ref([])
 const selectedMainCategory = ref(null)
 const selectedSubCategory = ref(null)
 const selectedLeafCategory = ref(null)
 
-// 模拟分类数据
-const mainCategories = [
-  { id: 1, name: '数码办公' },
-  { id: 2, name: '家用电器' },
-  { id: 3, name: '服装鞋帽' },
-  { id: 4, name: '食品饮料' },
-  { id: 5, name: '礼品箱包' },
-  { id: 6, name: '个护化妆' },
-  { id: 7, name: '厨房餐饮' },
-  { id: 8, name: '家居家装' },
-  { id: 9, name: '汽车用品' },
-  { id: 10, name: '玩具乐器' }
-]
+// 获取分类列表
+const fetchCategories = async () => {
+  loading.value = true
+  try {
+    const res = await getCategoryList()
+    if (res.code === 1) {
+      categories.value = res.data.category_list.map(category => ({
+        ...category,
+        id: category.category_id,
+        name: category.category_name
+      }))
+    } else {
+      throw new Error(res.msg || '获取分类列表失败')
+    }
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
+}
 
-// 添加子分类和叶子分类的数据
-const subCategories = ref([])
-const leafCategories = ref([])
+// 选择主分类
+const selectMainCategory = (category) => {
+  selectedMainCategory.value = category.category_id
+  selectedSubCategory.value = null
+  selectedLeafCategory.value = null
+  subCategories.value = category.children?.map(subCat => ({
+    ...subCat,
+    id: subCat.category_id,
+    name: subCat.category_name
+  })) || []
+  leafCategories.value = []
+}
+
+// 选择子分类
+const selectSubCategory = (category) => {
+  selectedSubCategory.value = category.category_id
+  selectedLeafCategory.value = null
+  leafCategories.value = category.children?.map(leafCat => ({
+    ...leafCat,
+    id: leafCat.category_id,
+    name: leafCat.category_name
+  })) || []
+}
+
+// 选择叶子分类
+const selectLeafCategory = (category) => {
+  selectedLeafCategory.value = category.category_id
+  currentStep.value = 1 // 选择完最后一级分类后进入下一步
+}
+
+onMounted(() => {
+  fetchCategories()
+})
 
 // 添加品牌数据
 const brands = [
@@ -274,91 +308,137 @@ const brands = [
   { id: 8, name: '荣耀' }
 ]
 
-// 商品表单
+// 商品表单数据
 const productForm = ref({
-  name: '',
-  brand: '',
-  price: 0,
-  description: '',
-  images: [],
-  specs: {}, // { '内存': ['256GB', '512GB'], '颜色': ['黑色', '白色'] }
+  category_id: null,
+  category_name: '',
+  brand_id: null,
+  brand_name: '',
+  spu_name: '',
+  spu_desc: '',
+  spu_price: '',
+  spu_img_url: '',
+  sku_list: [],
+  attribute_list: [],
+  specs: {}
 })
+
+// SKU规格输入
+const specInputs = ref([])
+
+// 添加规格项
+const addNewSpecInput = () => {
+  specInputs.value.push({
+    name: '',
+    value: '',
+    isExisting: false
+  })
+}
+
+// 删除规格项
+const removeSpecInput = (index) => {
+  specInputs.value.splice(index, 1)
+}
+
+// 处理图片上传成功
+const handleImageSuccess = (response) => {
+  productForm.value.spu_img_url = response.data.url
+}
+
+// 计算规格组合
+const specCombinations = computed(() => {
+  const specs = productForm.value.specs
+  const specNames = Object.keys(specs)
+  if (specNames.length === 0) return []
+
+  // 生成所有可能的组合
+  const combinations = []
+  const generateCombinations = (current, remainingSpecs) => {
+    if (remainingSpecs.length === 0) {
+      combinations.push({
+        specs: current,
+        price: productForm.value.spu_price,
+        stock: 0
+      })
+      return
+    }
+
+    const currentSpec = remainingSpecs[0]
+    const values = specs[currentSpec]
+    values.forEach(value => {
+      generateCombinations(
+        { ...current, [currentSpec]: value },
+        remainingSpecs.slice(1)
+      )
+    })
+  }
+
+  generateCombinations({}, specNames)
+  return combinations
+})
+
+// 格式化规格组合显示
+const formatSpecCombination = (specs) => {
+  return Object.entries(specs)
+    .map(([name, value]) => `${name}: ${value}`)
+    .join('; ')
+}
+
+// 发布商品
+const publishProduct = async () => {
+  // 构建SKU列表
+  const skuList = specCombinations.value.map(combo => ({
+    stock_num: combo.stock,
+    sku_price: combo.price.toString(),
+    spec_key_value: Object.entries(combo.specs).map(([name, value]) => ({
+      spec_name: name,
+      spec_value: value
+    }))
+  }))
+
+  // 构建发布数据
+  const publishData = {
+    ...productForm.value,
+    category_id: selectedLeafCategory.value,
+    category_name: leafCategories.value.find(cat => cat.category_id === selectedLeafCategory.value)?.category_name,
+    sku_list: skuList
+  }
+
+  try {
+    const res = await publishGoods(publishData)
+    if (res.code === 1) {
+      ElMessage.success('商品发布成功')
+      currentStep.value = 2 // 进入发布成功步骤
+    } else {
+      throw new Error(res.msg || '发布失败')
+    }
+  } catch (error) {
+    console.error('发布商品失败:', error)
+    ElMessage.error(error.message)
+  }
+}
 
 // 计算是否可以进行下一步
 const canProceed = computed(() => {
   if (currentStep.value === 0) {
-    return selectedLeafCategory.value !== null
+    return selectedMainCategory.value !== null
   }
   return true
 })
 
-// 模拟子分类数据
-const getSubCategories = (parentId) => {
-  // 模拟数据，实际应该从后端获取
-  const subCategoryMap = {
-    1: [ // 数码办公的子分类
-      { id: 101, name: '手机通讯' },
-      { id: 102, name: '摄影摄像' },
-      { id: 103, name: '数码配件' },
-      { id: 104, name: '时尚影音' },
-      { id: 105, name: '电脑整机' },
-      { id: 106, name: '电脑配件' },
-      { id: 107, name: '外设产品' },
-      { id: 108, name: '网络产品' },
-      { id: 109, name: '办公打印' },
-      { id: 110, name: '办公文仪' }
-    ]
-  }
-  return subCategoryMap[parentId] || []
-}
-
-// 模拟叶子分类数据
-const getLeafCategories = (parentId) => {
-  // 模拟数据，实际应该从后端获取
-  const leafCategoryMap = {
-    101: [ // 手机通讯的子分类
-      { id: 1001, name: '手机' },
-      { id: 1002, name: '对讲机' }
-    ]
-  }
-  return leafCategoryMap[parentId] || []
-}
-
-// 修改选择分类的方法
-const selectMainCategory = (category) => {
-  selectedMainCategory.value = category.id
-  selectedSubCategory.value = null
-  selectedLeafCategory.value = null
-  subCategories.value = getSubCategories(category.id)
-  leafCategories.value = []
-}
-
-const selectSubCategory = (category) => {
-  selectedSubCategory.value = category.id
-  selectedLeafCategory.value = null
-  leafCategories.value = getLeafCategories(category.id)
-}
-
-const selectLeafCategory = (category) => {
-  selectedLeafCategory.value = category.id
-}
-
 // 添加表单验证规则
 const rules = {
-  brand: [
-    { required: true, message: '请选择商品品牌', trigger: 'change' }
-  ],
-  name: [
+  spu_name: [
     { required: true, message: '请输入商品名称', trigger: 'blur' },
     { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
   ],
-  price: [
-    { required: true, message: '请输入商品价格', trigger: 'blur' }
-  ],
-  description: [
+  spu_desc: [
     { required: true, message: '请输入商品描述', trigger: 'blur' }
   ],
-  images: [
+  spu_price: [
+    { required: true, message: '请输入商品价格', trigger: 'blur' }
+  ],
+  spu_img_url: [
     { required: true, message: '请上传商品图片', trigger: 'change' }
   ]
 }
@@ -386,133 +466,7 @@ const prevStep = () => {
   }
 }
 
-// 图片上传
-const handleImageSuccess = (response) => {
-  productForm.value.images.push(response.url)
-}
-
-const beforeImageUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB!')
-    return false
-  }
-  return true
-}
-
 // 发布成功后的操作
-const goToProductList = () => {
-  router.push('/seller?tab=products')
-}
-
-// 计算规格组合
-const specCombinations = computed(() => {
-  const specs = productForm.value.specs
-  const specNames = Object.keys(specs)
-  if (specNames.length === 0) return []
-
-  // 生成所有可能的组合
-  const combinations = generateCombinations(specs)
-  return combinations.map(combo => ({
-    specs: combo,
-    price: 0,
-    stock: 0
-  }))
-})
-
-// 生成规格组合
-const generateCombinations = (specs) => {
-  const specNames = Object.keys(specs)
-  if (specNames.length === 0) return []
-
-  const combine = (current, remainingSpecs) => {
-    if (remainingSpecs.length === 0) return [current]
-    
-    const specName = remainingSpecs[0]
-    const values = specs[specName]
-    const results = []
-    
-    values.forEach(value => {
-      results.push(...combine(
-        { ...current, [specName]: value },
-        remainingSpecs.slice(1)
-      ))
-    })
-    
-    return results
-  }
-
-  return combine({}, specNames)
-}
-
-// 格式化规格组合显示
-const formatSpecCombination = (specs) => {
-  return Object.entries(specs)
-    .map(([name, value]) => `${name}: ${value}`)
-    .join(', ')
-}
-
-// 规格输入列表
-const specInputs = ref([])
-
-// 添加新的规格输入框
-const addNewSpecInput = () => {
-  specInputs.value.push({
-    name: '',
-    value: '',
-    isExisting: false
-  })
-}
-
-// 确认添加规格
-const confirmSpec = (index) => {
-  const spec = specInputs.value[index]
-  if (!spec.name || !spec.value) {
-    ElMessage.warning('请输入规格名称和规格值')
-    return
-  }
-
-  if (!productForm.value.specs[spec.name]) {
-    productForm.value.specs[spec.name] = []
-  }
-
-  if (productForm.value.specs[spec.name].includes(spec.value)) {
-    ElMessage.warning('该规格值已存在')
-    return
-  }
-
-  productForm.value.specs[spec.name].push(spec.value)
-  
-  // 保留输入框，但清空值并禁用规格名称输入
-  spec.value = ''
-  spec.isExisting = true
-  
-  ElMessage.success('添加规格值成功')
-}
-
-// 移除规格输入框
-const removeSpecInput = (index) => {
-  const spec = specInputs.value[index]
-  // 如果是已存在规格的输入框，检查是否还有其他值
-  if (spec.isExisting && productForm.value.specs[spec.name]?.length > 0) {
-    // 只移除输入框，不删除规格项
-    specInputs.value.splice(index, 1)
-  } else {
-    // 如果是新规格或最后一个值，删除整个规格项
-    if (spec.isExisting) {
-      delete productForm.value.specs[spec.name]
-    }
-    specInputs.value.splice(index, 1)
-  }
-}
-
-// 修改重置表单的逻辑
 const publishAnother = () => {
   currentStep.value = 0
   selectedMainCategory.value = null
@@ -520,30 +474,50 @@ const publishAnother = () => {
   selectedLeafCategory.value = null
   specInputs.value = []
   productForm.value = {
-    name: '',
-    brand: '',
-    price: 0,
-    description: '',
-    images: [],
+    category_id: null,
+    category_name: '',
+    brand_id: null,
+    brand_name: '',
+    spu_name: '',
+    spu_desc: '',
+    spu_price: '',
+    spu_img_url: '',
+    sku_list: [],
+    attribute_list: [],
     specs: {}
   }
 }
 
-// 移除规格项
-const removeSpecItem = (specName) => {
-  delete productForm.value.specs[specName]
+// 添加规格项
+const addSpecItem = (groupIndex) => {
+  specInputs.value[groupIndex].specs.push({
+    spec_name: '',
+    spec_value: ''
+  })
 }
 
-// 移除规格值
-const removeSpecValue = (specName, value) => {
-  const values = productForm.value.specs[specName]
-  const index = values.indexOf(value)
-  if (index > -1) {
-    values.splice(index, 1)
-    if (values.length === 0) {
-      delete productForm.value.specs[specName]
+// 删除规格项
+const removeSpecItem = (name) => {
+  delete productForm.value.specs[name]
+}
+
+// 确认规格项
+const confirmSpec = (index) => {
+  const spec = specInputs.value[index]
+  if (spec.name && spec.value) {
+    if (!productForm.value.specs[spec.name]) {
+      productForm.value.specs[spec.name] = []
     }
+    productForm.value.specs[spec.name].push(spec.value)
+    spec.isExisting = true
+    spec.name = ''
+    spec.value = ''
   }
+}
+
+// 删除规格值
+const removeSpecValue = (name, value) => {
+  productForm.value.specs[name] = productForm.value.specs[name].filter(v => v !== value)
 }
 </script>
 
@@ -608,10 +582,9 @@ const removeSpecValue = (specName, value) => {
 }
 
 .product-form {
+  padding: 20px;
   background: #fff;
-  padding: 30px;
   border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
 
 .step-actions {
@@ -782,5 +755,98 @@ const removeSpecValue = (specName, value) => {
 
 .spec-value-input {
   flex: 1;
+}
+
+.sku-section {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.spec-item {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sku-price-stock {
+  margin-top: 10px;
+  display: flex;
+  gap: 20px;
+}
+
+.preview-image {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+}
+
+.sku-section {
+  margin: 20px 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.spec-group {
+  margin-bottom: 20px;
+  border: 1px solid #EBEEF5;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.spec-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.group-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spec-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.spec-input {
+  flex: 1;
+}
+
+.add-spec-btn {
+  margin-top: 10px;
+}
+
+:deep(.el-input-number .el-input__wrapper) {
+  padding-left: 11px;
+}
+
+:deep(.el-input__wrapper) {
+  padding-left: 11px !important;
+}
+
+:deep(.el-input__inner) {
+  text-align: left !important;
+}
+
+:deep(.el-input__inner::placeholder) {
+  text-align: left;
 }
 </style> 

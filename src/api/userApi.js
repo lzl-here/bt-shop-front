@@ -63,4 +63,12 @@ export const getWechatQrcode = () => {
 
 export const checkWechatLogin = () => {
   return Promise.reject(new Error('微信登录功能暂未开放'))
+}
+
+// 添加获取店铺详情的方法
+export const getShopDetail = () => {
+  return request({
+    url: '/user/get_shop_detail',
+    method: 'post'
+  })
 } 

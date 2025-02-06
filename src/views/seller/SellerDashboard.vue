@@ -110,68 +110,61 @@
                 添加商品
               </el-button>
             </div>
-            <el-table :data="currentPageProducts" style="width: 100%">
-              <el-table-column prop="id" label="商品ID" width="80" />
-              <el-table-column label="商品信息">
+            <el-table
+              v-loading="loading"
+              :data="products"
+              style="width: 100%"
+              border
+            >
+              <el-table-column label="商品ID" prop="id" width="80" align="center" />
+              
+              <el-table-column label="商品信息" min-width="400">
                 <template #default="{ row }">
                   <div class="product-info">
-                    <el-image :src="row.image" :preview-src-list="[row.image]" class="product-image" />
+                    <el-image
+                      :src="row.spu_img_url"
+                      :preview-src-list="[row.spu_img_url]"
+                      class="product-image"
+                      fit="cover"
+                    >
+                      <template #error>
+                        <div class="image-error">
+                          <el-icon><Picture /></el-icon>
+                        </div>
+                      </template>
+                    </el-image>
                     <div class="product-detail">
-                      <div class="product-name">{{ row.name }}</div>
-                      <div class="product-price">¥{{ row.price }}</div>
+                      <div class="product-name">{{ row.spu_name }}</div>
+                      <div class="product-price">¥{{ Number(row.spu_price).toFixed(2) }}</div>
                     </div>
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column prop="stock" label="库存" width="100" />
-              <el-table-column prop="sales" label="销量" width="100" />
-              <el-table-column label="状态" width="100">
+
+              <el-table-column label="分类" prop="category_name" width="120" align="center" />
+              
+              <el-table-column label="品牌" prop="brand_name" width="120" align="center" />
+              
+              <el-table-column label="状态" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === '在售' ? 'success' : 'info'">
-                    {{ row.status }}
+                  <el-tag :type="row.enabled ? 'success' : 'info'">
+                    {{ row.enabled ? '在售' : '已下架' }}
                   </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="200">
-                <template #default="{ row }">
-                  <el-button-group>
-                    <el-button size="small" @click="editProduct(row)">编辑</el-button>
-                    <el-button size="small" type="danger" @click="deleteProduct(row)">删除</el-button>
-                  </el-button-group>
                 </template>
               </el-table-column>
             </el-table>
 
-            <!-- 添加分页组件 -->
-            <div class="pagination-container">
-              <div class="pagination-left">
-                Total {{ totalProducts }}
-                <el-select v-model="productPageSize" class="page-size-select">
-                  <el-option
-                    v-for="size in [10, 20, 30, 50]"
-                    :key="size"
-                    :label="`${size}/page`"
-                    :value="size"
-                  />
-                </el-select>
-              </div>
-              <div class="pagination-center">
-                <el-pagination
-                  v-model:current-page="productCurrentPage"
-                  :page-size="productPageSize"
-                  :total="totalProducts"
-                  layout="prev, pager, next"
-                  @current-change="handleProductPageChange"
-                />
-              </div>
-              <div class="pagination-right">
-                Go to
-                <el-input
-                  v-model="productGoToPage"
-                  class="go-to-input"
-                  @keyup.enter="handleProductGoToPage"
-                />
-              </div>
+            <!-- 分页 -->
+            <div class="pagination">
+              <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :total="totalProducts"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
             </div>
           </div>
 
@@ -342,6 +335,7 @@ import StoreSettings from './StoreSettings.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import { useStoreStore } from '../../stores/store'
+import { getSellerGoodsList } from '../../api/goodsApi'
 
 const router = useRouter()
 const route = useRoute()
@@ -355,57 +349,73 @@ const activeMenu = ref(route.query.tab || 'settings')
 const hasStore = computed(() => storeStore.hasStore)
 const storeInfo = computed(() => storeStore.storeInfo)
 
+// 商品列表相关
+const loading = ref(false)
+const products = ref([])
+const totalProducts = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// 获取商品列表
+const fetchProducts = async () => {
+  if (!storeStore.storeInfo?.id) {
+    ElMessage.warning('店铺信息不存在')
+    return
+  }
+
+  loading.value = true
+  try {
+    const res = await getSellerGoodsList({
+      shop_id: storeStore.storeInfo.id,
+      page_size: pageSize.value,
+      page_no: currentPage.value
+    })
+    
+    if (res.code === 1) {
+      products.value = res.data.spu_list
+      totalProducts.value = res.data.total
+    } else {
+      throw new Error(res.msg || '获取商品列表失败')
+    }
+  } catch (error) {
+    console.error('获取商品列表失败:', error)
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 处理分页变化
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  fetchProducts()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchProducts()
+}
+
+// 监听菜单切换
+watch(activeMenu, (newVal) => {
+  if (newVal === 'products') {
+    fetchProducts()
+  }
+})
+
+// 初始化时如果是商品管理页面则获取商品列表
+onMounted(() => {
+  if (activeMenu.value === 'products') {
+    fetchProducts()
+  }
+})
+
 // 统计数据
 const statistics = ref({
   todayOrders: 156,
   todaySales: 25680,
   totalProducts: 386,
   pendingOrders: 12
-})
-
-// 商品分页相关的响应式变量
-const productCurrentPage = ref(1)
-const productPageSize = ref(10)
-const productGoToPage = ref('')
-
-// 模拟25条商品数据
-const products = ref(Array.from({ length: 25 }, (_, index) => ({
-  id: index + 1,
-  name: `HUAWEI Mate ${60 + index} Pro`,
-  price: 6999 + index * 1000,
-  image: 'https://via.placeholder.com/100',
-  stock: 100 + index * 10,
-  sales: 1000 + index * 100,
-  status: index % 2 === 0 ? '在售' : '已下架'
-})))
-
-// 计算总商品数
-const totalProducts = computed(() => products.value.length)
-
-// 计算当前页的商品
-const currentPageProducts = computed(() => {
-  const start = (productCurrentPage.value - 1) * productPageSize.value
-  const end = start + productPageSize.value
-  return products.value.slice(start, end)
-})
-
-// 商品页码改变处理
-const handleProductPageChange = (val) => {
-  productCurrentPage.value = val
-}
-
-// 跳转到指定商品页
-const handleProductGoToPage = () => {
-  const page = parseInt(productGoToPage.value)
-  if (page && page > 0 && page <= Math.ceil(totalProducts.value / productPageSize.value)) {
-    productCurrentPage.value = page
-  }
-  productGoToPage.value = ''
-}
-
-// 监听商品页码大小变化
-watch(productPageSize, () => {
-  productCurrentPage.value = 1
 })
 
 // 菜单选择
@@ -496,8 +506,6 @@ const orders = ref(Array.from({ length: 37 }, (_, index) => {
 }))
 
 // 分页相关的响应式变量
-const currentPage = ref(1)
-const pageSize = ref(10)
 const goToPage = ref('')
 
 // 修改订单过滤逻辑
@@ -570,11 +578,6 @@ const resetOrderSearch = () => {
   handleOrderSearch()
 }
 
-// 页码改变处理
-const handleCurrentChange = (val) => {
-  currentPage.value = val
-}
-
 // 跳转到指定页
 const handleGoToPage = () => {
   const page = parseInt(goToPage.value)
@@ -583,11 +586,6 @@ const handleGoToPage = () => {
   }
   goToPage.value = ''
 }
-
-// 监听页码大小变化
-watch(pageSize, () => {
-  currentPage.value = 1
-})
 
 // 订单状态标签颜色
 const getStatusType = (status) => {
@@ -657,19 +655,6 @@ const goToApply = () => {
 const goToProductPublish = () => {
   router.push('/seller/product/publish')
 }
-
-onMounted(async () => {
-  // TODO: 获取店铺信息
-  // const response = await getStoreInfo()
-  // if (response.success) {
-  //   storeStore.setStoreInfo(response.data)
-  // }
-  
-  // 临时模拟数据
-  if (!storeStore.hasStore) {
-    storeStore.clearStoreInfo()
-  }
-})
 
 </script>
 
