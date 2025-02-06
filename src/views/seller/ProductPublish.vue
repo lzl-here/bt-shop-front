@@ -77,15 +77,17 @@
             />
           </el-form-item>
 
-          <el-form-item label="商品图片" required>
+          <el-form-item label="商品图片" prop="images">
             <el-upload
-              class="product-image-upload"
+              class="image-uploader"
               action="/api/upload"
-              :show-file-list="false"
+              :show-file-list="true"
               :on-success="handleImageSuccess"
+              :before-upload="beforeImageUpload"
+              multiple
+              list-type="picture-card"
             >
-              <img v-if="productForm.spu_img_url" :src="productForm.spu_img_url" class="preview-image">
-              <el-button v-else type="primary">上传图片</el-button>
+              <el-icon><Plus /></el-icon>
             </el-upload>
           </el-form-item>
 
@@ -95,6 +97,8 @@
               :precision="2"
               :step="0.01"
               :min="0"
+              controls-position="right"
+              placeholder="请输入商品价格"
             />
           </el-form-item>
 
@@ -102,8 +106,8 @@
           <el-form-item label="商品规格" prop="specs">
             <div class="specs-section">
               <div class="specs-header">
-                <span class="section-title">规格项</span>
-                <el-button type="primary" @click="addNewSpecInput">添加规格项</el-button>
+                <span class="section-title">规格设置</span>
+                <el-button type="primary" @click="addNewSpecGroup">添加规格组</el-button>
               </div>
 
               <div class="specs-content">
@@ -118,12 +122,12 @@
                     />
                     <el-input
                       v-model="spec.value"
-                      placeholder="规格值（如：256GB）"
+                      placeholder="规格值（如：8g）"
                       class="spec-value-input"
                       @keyup.enter="confirmSpec(index)"
                     >
                       <template #append>
-                        <el-button @click="confirmSpec(index)">确定</el-button>
+                        <el-button @click="confirmSpec(index)">添加</el-button>
                       </template>
                     </el-input>
                     <el-button type="danger" link @click="removeSpecInput(index)">删除</el-button>
@@ -192,17 +196,15 @@
       </div>
 
       <!-- 第三步：发布成功 -->
-      <div v-if="currentStep === 2" class="publish-success">
-        <el-result
-          icon="success"
-          title="商品发布成功"
-          sub-title="您可以继续发布新商品或返回商品列表"
-        >
-          <template #extra>
-            <el-button type="primary" @click="publishAnother">继续发布</el-button>
-            <el-button @click="$router.push('/seller/dashboard?tab=products')">返回列表</el-button>
-          </template>
-        </el-result>
+      <div v-if="currentStep === 2" class="success-step">
+        <div class="success-icon">
+          <el-icon><CircleCheckFilled /></el-icon>
+        </div>
+        <h2>商品发布成功！</h2>
+        <div class="success-actions">
+          <el-button @click="goToList">返回列表</el-button>
+          <el-button type="primary" @click="currentStep = 0">继续发布</el-button>
+        </div>
       </div>
     </div>
 
@@ -224,13 +226,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, ArrowRight } from '@element-plus/icons-vue'
+import { Plus, ArrowRight, CircleCheckFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getCategoryList, publishGoods } from '../../api/goodsApi'
+import { useUserStore } from '../../stores/user'
+import { useStoreStore } from '../../stores/store'
 
 const router = useRouter()
 const currentStep = ref(0)
 const loading = ref(false)
+
+// 获取 store
+const userStore = useUserStore()
+const storeStore = useStoreStore()
 
 // 分类相关
 const categories = ref([])
@@ -316,7 +324,7 @@ const productForm = ref({
   brand_name: '',
   spu_name: '',
   spu_desc: '',
-  spu_price: '',
+  spu_price: 0,
   spu_img_url: '',
   sku_list: [],
   attribute_list: [],
@@ -326,8 +334,8 @@ const productForm = ref({
 // SKU规格输入
 const specInputs = ref([])
 
-// 添加规格项
-const addNewSpecInput = () => {
+// 添加规格组
+const addNewSpecGroup = () => {
   specInputs.value.push({
     name: '',
     value: '',
@@ -335,7 +343,7 @@ const addNewSpecInput = () => {
   })
 }
 
-// 删除规格项
+// 移除规格输入框
 const removeSpecInput = (index) => {
   specInputs.value.splice(index, 1)
 }
@@ -357,7 +365,7 @@ const specCombinations = computed(() => {
     if (remainingSpecs.length === 0) {
       combinations.push({
         specs: current,
-        price: productForm.value.spu_price,
+        price: parseFloat(productForm.value.spu_price) || 0,
         stock: 0
       })
       return
@@ -386,22 +394,39 @@ const formatSpecCombination = (specs) => {
 
 // 发布商品
 const publishProduct = async () => {
-  // 构建SKU列表
+  if (!userStore.userInfo?.id || !storeStore.storeInfo?.id) {
+    ElMessage.error('用户信息或店铺信息不完整，请重新登录')
+    return
+  }
+
+  // 构建SKU列表，确保数据类型正确
   const skuList = specCombinations.value.map(combo => ({
-    stock_num: combo.stock,
-    sku_price: combo.price.toString(),
+    stock_num: Number(combo.stock), // 确保是 uint64
+    sku_price: combo.price.toFixed(2), // 确保是 string 类型的价格
     spec_key_value: Object.entries(combo.specs).map(([name, value]) => ({
-      spec_name: name,
-      spec_value: value
+      spec_name: String(name),
+      spec_value: String(value)
     }))
   }))
 
-  // 构建发布数据
+  // 构建发布数据，确保所有字段类型符合 protobuf 定义
   const publishData = {
-    ...productForm.value,
-    category_id: selectedLeafCategory.value,
-    category_name: leafCategories.value.find(cat => cat.category_id === selectedLeafCategory.value)?.category_name,
-    sku_list: skuList
+    category_id: Number(selectedLeafCategory.value), // uint64
+    category_name: String(leafCategories.value.find(cat => 
+      cat.category_id === selectedLeafCategory.value)?.category_name || ''),
+    brand_id: Number(productForm.value.brand_id || 0), // uint64
+    brand_name: String(productForm.value.brand_name || ''),
+    spu_name: String(productForm.value.spu_name),
+    spu_desc: String(productForm.value.spu_desc),
+    spu_price: productForm.value.spu_price.toFixed(2), // string
+    spu_img_url: String(productForm.value.spu_img_url),
+    user_id: Number(userStore.userInfo.id), // uint64
+    shop_id: Number(storeStore.storeInfo.id), // uint64
+    sku_list: skuList,
+    attribute_list: productForm.value.attribute_list.map(attr => ({
+      attribute_name: String(attr.attribute_name),
+      attribute_value: String(attr.attribute_value)
+    }))
   }
 
   try {
@@ -426,7 +451,7 @@ const canProceed = computed(() => {
   return true
 })
 
-// 添加表单验证规则
+// 修改表单验证规则部分
 const rules = {
   spu_name: [
     { required: true, message: '请输入商品名称', trigger: 'blur' },
@@ -438,8 +463,8 @@ const rules = {
   spu_price: [
     { required: true, message: '请输入商品价格', trigger: 'blur' }
   ],
-  spu_img_url: [
-    { required: true, message: '请上传商品图片', trigger: 'change' }
+  images: [
+    { required: false }
   ]
 }
 
@@ -480,7 +505,7 @@ const publishAnother = () => {
     brand_name: '',
     spu_name: '',
     spu_desc: '',
-    spu_price: '',
+    spu_price: 0,
     spu_img_url: '',
     sku_list: [],
     attribute_list: [],
@@ -488,36 +513,71 @@ const publishAnother = () => {
   }
 }
 
-// 添加规格项
-const addSpecItem = (groupIndex) => {
-  specInputs.value[groupIndex].specs.push({
-    spec_name: '',
-    spec_value: ''
-  })
-}
-
-// 删除规格项
-const removeSpecItem = (name) => {
-  delete productForm.value.specs[name]
-}
-
-// 确认规格项
+// 确认添加规格值
 const confirmSpec = (index) => {
   const spec = specInputs.value[index]
-  if (spec.name && spec.value) {
-    if (!productForm.value.specs[spec.name]) {
-      productForm.value.specs[spec.name] = []
+  if (!spec.name || !spec.value) {
+    ElMessage.warning('请输入规格名称和规格值')
+    return
+  }
+
+  // 如果该规格名称不存在，创建新数组
+  if (!productForm.value.specs[spec.name]) {
+    productForm.value.specs[spec.name] = []
+  }
+
+  // 检查是否已存在相同的规格值
+  if (productForm.value.specs[spec.name].includes(spec.value)) {
+    ElMessage.warning('该规格值已存在')
+    return
+  }
+
+  // 添加新的规格值
+  productForm.value.specs[spec.name].push(spec.value)
+  
+  // 清空规格值输入框，保留规格名称
+  spec.value = ''
+  spec.isExisting = true
+
+  ElMessage.success('添加规格值成功')
+}
+
+// 移除规格值
+const removeSpecValue = (name, value) => {
+  const values = productForm.value.specs[name]
+  const index = values.indexOf(value)
+  if (index > -1) {
+    values.splice(index, 1)
+    // 如果该规格没有值了，删除整个规格项
+    if (values.length === 0) {
+      delete productForm.value.specs[name]
+      // 找到并移除对应的输入框
+      const inputIndex = specInputs.value.findIndex(spec => spec.name === name)
+      if (inputIndex > -1) {
+        specInputs.value.splice(inputIndex, 1)
+      }
     }
-    productForm.value.specs[spec.name].push(spec.value)
-    spec.isExisting = true
-    spec.name = ''
-    spec.value = ''
   }
 }
 
-// 删除规格值
-const removeSpecValue = (name, value) => {
-  productForm.value.specs[name] = productForm.value.specs[name].filter(v => v !== value)
+// 移除规格项
+const removeSpecItem = (name) => {
+  delete productForm.value.specs[name]
+  // 找到对应的输入框并移除
+  const inputIndex = specInputs.value.findIndex(spec => spec.name === name)
+  if (inputIndex > -1) {
+    specInputs.value.splice(inputIndex, 1)
+  }
+}
+
+// 修改返回列表的方法
+const goBack = () => {
+  router.push('/seller?tab=products')  // 跳转到卖家中心的商品管理标签页
+}
+
+// 在发布成功步骤中的返回列表按钮点击事件
+const goToList = () => {
+  router.push('/seller?tab=products')  // 跳转到卖家中心的商品管理标签页
 }
 </script>
 
@@ -606,9 +666,21 @@ const removeSpecValue = (name, value) => {
   border-color: var(--el-color-primary);
 }
 
-.publish-success {
+.success-step {
   padding: 40px;
   text-align: center;
+}
+
+.success-icon {
+  font-size: 48px;
+  color: #67c23a;
+  margin-bottom: 20px;
+}
+
+.success-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
 }
 
 /* 添加品牌选择框样式 */
