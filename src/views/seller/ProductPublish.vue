@@ -55,6 +55,45 @@
             </div>
           </div>
         </div>
+
+        <!-- 添加品牌选择部分 -->
+        <div class="brand-selection">
+          <h3 class="section-title">
+            选择品牌
+            <span class="optional-text">(选填)</span>
+          </h3>
+          <div v-if="loading" class="loading-wrapper">
+            <el-skeleton :rows="3" animated />
+          </div>
+          <div v-else-if="brands.length" class="brand-list">
+            <div
+              v-for="brand in brands"
+              :key="brand.id"
+              class="brand-item"
+              :class="{ active: selectedBrand === brand.id }"
+              @click="selectBrand(brand)"
+            >
+              <el-image 
+                :src="brand.icon_url" 
+                class="brand-icon"
+                fit="contain"
+              >
+                <template #error>
+                  <div class="image-placeholder">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+              <el-icon 
+                v-if="selectedBrand === brand.id" 
+                class="check-icon"
+              >
+                <Check />
+              </el-icon>
+            </div>
+          </div>
+          <el-empty v-else description="暂无品牌数据" />
+        </div>
       </div>
 
       <!-- 第二步：填写商品详情 -->
@@ -226,9 +265,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, ArrowRight, CircleCheckFilled } from '@element-plus/icons-vue'
+import { Plus, ArrowRight, CircleCheckFilled, Check, Picture, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getCategoryList, publishGoods } from '../../api/goodsApi'
+import { getCategoryList, publishGoods, getBrandList } from '../../api/goodsApi'
 import { useUserStore } from '../../stores/user'
 import { useStoreStore } from '../../stores/store'
 
@@ -248,6 +287,9 @@ const selectedMainCategory = ref(null)
 const selectedSubCategory = ref(null)
 const selectedLeafCategory = ref(null)
 
+// 品牌相关数据
+const brands = ref([])
+
 // 获取分类列表
 const fetchCategories = async () => {
   loading.value = true
@@ -264,6 +306,28 @@ const fetchCategories = async () => {
     }
   } catch (error) {
     console.error('获取分类列表失败:', error)
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取品牌列表
+const fetchBrands = async () => {
+  loading.value = true
+  try {
+    const res = await getBrandList()
+    if (res.code === 1) {
+      brands.value = res.data.brand_list.map(brand => ({
+        id: brand.brand_id,
+        name: brand.brand_name,
+        icon_url: brand.icon_url
+      }))
+    } else {
+      throw new Error(res.msg || '获取品牌列表失败')
+    }
+  } catch (error) {
+    console.error('获取品牌列表失败:', error)
     ElMessage.error(error.message)
   } finally {
     loading.value = false
@@ -297,24 +361,14 @@ const selectSubCategory = (category) => {
 // 选择叶子分类
 const selectLeafCategory = (category) => {
   selectedLeafCategory.value = category.category_id
-  currentStep.value = 1 // 选择完最后一级分类后进入下一步
+  // 选择完叶子分类后不要立即进入下一步，等待选择品牌
+  fetchBrands() // 获取品牌列表
 }
 
 onMounted(() => {
   fetchCategories()
+  fetchBrands()
 })
-
-// 添加品牌数据
-const brands = [
-  { id: 1, name: '苹果' },
-  { id: 2, name: '小米' },
-  { id: 3, name: 'OPPO' },
-  { id: 4, name: 'vivo' },
-  { id: 5, name: '魅族' },
-  { id: 6, name: '华为' },
-  { id: 7, name: '三星' },
-  { id: 8, name: '荣耀' }
-]
 
 // 商品表单数据
 const productForm = ref({
@@ -446,7 +500,7 @@ const publishProduct = async () => {
 // 计算是否可以进行下一步
 const canProceed = computed(() => {
   if (currentStep.value === 0) {
-    return selectedMainCategory.value !== null
+    return selectedLeafCategory.value // 只需要选择了分类即可
   }
   return true
 })
@@ -578,6 +632,21 @@ const goBack = () => {
 // 在发布成功步骤中的返回列表按钮点击事件
 const goToList = () => {
   router.push('/seller?tab=products')  // 跳转到卖家中心的商品管理标签页
+}
+
+// 添加品牌选择
+const selectedBrand = ref(null)
+const selectBrand = (brand) => {
+  selectedBrand.value = brand.id
+  productForm.value.brand_id = brand.id
+  productForm.value.brand_name = brand.name
+}
+
+// 清除选中的品牌
+const clearSelectedBrand = () => {
+  selectedBrand.value = null
+  productForm.value.brand_id = null
+  productForm.value.brand_name = ''
 }
 </script>
 
@@ -920,5 +989,140 @@ const goToList = () => {
 
 :deep(.el-input__inner::placeholder) {
   text-align: left;
+}
+
+.brand-selection {
+  margin-top: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  padding: 4px;
+}
+
+.step-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.brand-item {
+  position: relative;
+  padding: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1;
+}
+
+.brand-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.check-icon {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  color: var(--el-color-primary);
+  font-size: 16px;
+  background: #fff;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.brand-item:hover {
+  border-color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.brand-item.active {
+  border-color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 24px;
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.check-icon {
+  color: var(--el-color-primary);
+  font-size: 16px;
+}
+
+.close-icon {
+  color: #909399;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.close-icon:hover {
+  color: var(--el-color-danger);
+  transform: scale(1.1);
+}
+
+.brand-item:hover {
+  border-color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.brand-item.active {
+  border-color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+}
+
+.brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optional-text {
+  font-size: 12px;
+  color: #909399;
+  font-weight: normal;
 }
 </style> 

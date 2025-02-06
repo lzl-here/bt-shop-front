@@ -135,6 +135,7 @@
                     </el-image>
                     <div class="product-detail">
                       <div class="product-name">{{ row.spu_name }}</div>
+                      <div class="product-desc">{{ row.spu_desc }}</div>
                       <div class="product-price">¥{{ Number(row.spu_price).toFixed(2) }}</div>
                     </div>
                   </div>
@@ -143,7 +144,21 @@
 
               <el-table-column label="分类" prop="category_name" width="120" align="center" />
               
-              <el-table-column label="品牌" prop="brand_name" width="120" align="center" />
+              <el-table-column label="品牌" width="120" align="center">
+                <template #default="{ row }">
+                  <div class="brand-container">
+                    <el-image
+                      :src="row.brand_icon_url"
+                      class="brand-logo"
+                      fit="contain"
+                    >
+                      <template #error>
+                        <span class="brand-fallback">{{ row.brand_name }}</span>
+                      </template>
+                    </el-image>
+                  </div>
+                </template>
+              </el-table-column>
               
               <el-table-column label="状态" width="100" align="center">
                 <template #default="{ row }">
@@ -175,143 +190,113 @@
 
           <!-- 订单管理面板 -->
           <div v-if="activeMenu === 'orders'" class="orders-panel">
-            <!-- 添加搜索表单 -->
+            <!-- 搜索栏 -->
             <div class="search-form">
-              <el-form :inline="true" :model="orderSearchForm" size="default">
-                <div class="search-content">
-                  <div class="search-items">
-                    <el-form-item label="状态">
-                      <el-select v-model="orderSearchForm.status" placeholder="全部状态" clearable>
-                        <el-option label="待付款" value="pending_payment" />
-                        <el-option label="待发货" value="pending_ship" />
-                        <el-option label="已发货" value="shipped" />
-                        <el-option label="已完成" value="completed" />
-                      </el-select>
-                    </el-form-item>
-                    <el-form-item label="订单号">
-                      <el-input 
-                        v-model="orderSearchForm.orderNo" 
-                        placeholder="请输入订单号"
-                        clearable
-                        :input-style="{ textAlign: 'left' }"
-                      />
-                    </el-form-item>
-                    <el-form-item label="买家">
-                      <el-input 
-                        v-model="orderSearchForm.buyer" 
-                        placeholder="请输入买家名称"
-                        clearable
-                        :input-style="{ textAlign: 'left' }"
-                      />
-                    </el-form-item>
-                    <el-form-item label="支付方式">
-                      <el-select v-model="orderSearchForm.paymentMethod" placeholder="全部方式" clearable>
-                        <el-option label="支付宝" value="支付宝" />
-                        <el-option label="微信支付" value="微信支付" />
-                      </el-select>
-                    </el-form-item>
-                  </div>
-                  <div class="search-buttons">
-                    <el-button type="primary" @click="handleOrderSearch">
-                      <el-icon><Search /></el-icon>查询
-                    </el-button>
-                    <el-button @click="resetOrderSearch">
-                      <el-icon><RefreshRight /></el-icon>重置
-                    </el-button>
-                  </div>
-                </div>
+              <el-form :inline="true" :model="searchForm">
+                <el-form-item label="订单状态">
+                  <el-select v-model="searchForm.order_status" placeholder="全部状态" clearable>
+                    <el-option label="待付款" value="paying" />
+                    <el-option label="已付款" value="paid" />
+                    <el-option label="部分发货" value="part_delivered" />
+                    <el-option label="已发货" value="delivered" />
+                    <el-option label="已完成" value="completed" />
+                    <el-option label="已取消" value="canceled" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="fetchOrders">查询</el-button>
+                  <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
               </el-form>
             </div>
 
-            <el-table 
-              :data="currentPageOrders" 
+            <!-- 订单列表 -->
+            <el-table
+              v-loading="loading"
+              :data="orders"
               style="width: 100%"
-              :header-cell-style="{
-                background: '#F5F7FA',
-                color: '#606266',
-                fontWeight: 500,
-                fontSize: '12px',
-                height: '36px',
-                padding: '4px 12px'
-              }"
-              :cell-style="{
-                fontSize: '12px',
-                padding: '8px 12px'
-              }"
+              border
             >
-              <el-table-column prop="tradeNo" label="交易单号" width="170" />
-              <el-table-column prop="orderNumber" label="订单号" width="170" />
-              <el-table-column prop="customerName" label="买家" width="80" />
-              <el-table-column prop="total" label="订单金额" width="120">
+              <el-table-column label="订单信息" min-width="400">
                 <template #default="{ row }">
-                  <span class="amount">¥{{ row.total.toFixed(2) }}</span>
+                  <div class="order-info">
+                    <el-image
+                      :src="row.sku_img_url"
+                      class="order-image"
+                      fit="cover"
+                    >
+                      <template #error>
+                        <div class="image-error">
+                          <el-icon><Picture /></el-icon>
+                        </div>
+                      </template>
+                    </el-image>
+                    <div class="order-detail">
+                      <div class="order-name">{{ row.spu_name }}</div>
+                      <div class="order-specs">
+                        <span v-for="spec in row.spec_value_list" :key="spec.id">
+                          {{ spec.spec_name }}: {{ spec.spec_value }}
+                        </span>
+                      </div>
+                      <div class="order-price">
+                        <span class="price">¥{{ row.sku_amount }}</span>
+                        <span class="quantity">x{{ row.buy_num }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column prop="paymentMethod" label="支付方式" width="100" />
-              <el-table-column prop="status" label="订单状态" width="90">
+
+              <el-table-column label="订单号" prop="order_no" width="180" align="center" />
+              
+              <el-table-column label="实付金额" width="120" align="center">
                 <template #default="{ row }">
-                  <el-tag 
-                    :type="getStatusType(row.status)"
-                    size="small"
-                    effect="light"
-                  >
-                    {{ row.status }}
+                  <span class="amount">¥{{ row.order_amount }}</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="订单状态" width="100" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="getOrderStatusType(row.order_status)">
+                    {{ getOrderStatusText(row.order_status) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="orderTime" label="下单时间" min-width="150" />
-              <el-table-column label="操作" width="140" fixed="right">
+
+              <el-table-column label="下单时间" width="180" align="center">
+                <template #default="{ row }">
+                  {{ formatDate(row.created_at) }}
+                </template>
+              </el-table-column>
+
+              <el-table-column label="操作" width="120" align="center">
                 <template #default="{ row }">
                   <el-button 
-                    v-if="['已支付', '待发货', '部分发货'].includes(row.status)"
+                    v-if="row.order_status === 'paid'"
                     type="primary" 
-                    size="small"
-                    @click="handleOrderAction(row, 'ship')"
+                    link
+                    @click="handleShip(row)"
                   >
                     发货
                   </el-button>
-                  <el-button 
-                    type="primary" 
-                    size="small"
-                    link
-                    @click="handleOrderAction(row, 'detail')"
-                  >
-                    查看详情
+                  <el-button type="primary" link @click="viewOrderDetail(row)">
+                    详情
                   </el-button>
                 </template>
               </el-table-column>
             </el-table>
 
-            <!-- 添加分页组件 -->
-            <div class="pagination-container">
-              <div class="pagination-left">
-                Total {{ totalOrders }}
-                <el-select v-model="pageSize" class="page-size-select">
-                  <el-option
-                    v-for="size in [10, 20, 30, 50]"
-                    :key="size"
-                    :label="`${size}/page`"
-                    :value="size"
-                  />
-                </el-select>
-              </div>
-              <div class="pagination-center">
-                <el-pagination
-                  v-model:current-page="currentPage"
-                  :page-size="pageSize"
-                  :total="totalOrders"
-                  layout="prev, pager, next"
-                  @current-change="handleCurrentChange"
-                />
-              </div>
-              <div class="pagination-right">
-                Go to
-                <el-input
-                  v-model="goToPage"
-                  class="go-to-input"
-                  @keyup.enter="handleGoToPage"
-                />
-              </div>
+            <!-- 在订单列表表格下方添加分页 -->
+            <div class="pagination">
+              <el-pagination
+                v-model:current-page="orderCurrentPage"
+                v-model:page-size="orderPageSize"
+                :total="totalOrders"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next"
+                @size-change="handleOrderSizeChange"
+                @current-change="handleOrderCurrentChange"
+              />
             </div>
           </div>
 
@@ -336,6 +321,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import { useStoreStore } from '../../stores/store'
 import { getSellerGoodsList } from '../../api/goodsApi'
+import { getSellerOrderList } from '../../api/orderApi'
+import { formatDate } from '../../utils/date'
 
 const router = useRouter()
 const route = useRoute()
@@ -400,6 +387,8 @@ const handleCurrentChange = (val) => {
 watch(activeMenu, (newVal) => {
   if (newVal === 'products') {
     fetchProducts()
+  } else if (newVal === 'orders') {
+    fetchOrders()
   }
 })
 
@@ -407,6 +396,8 @@ watch(activeMenu, (newVal) => {
 onMounted(() => {
   if (activeMenu.value === 'products') {
     fetchProducts()
+  } else if (activeMenu.value === 'orders') {
+    fetchOrders()
   }
 })
 
@@ -452,199 +443,111 @@ const deleteProduct = (product) => {
 }
 
 // 订单数据
-const orders = ref(Array.from({ length: 37 }, (_, index) => {
-  const id = index + 1
-  const orderNumber = `O202403200000${id.toString().padStart(3, '0')}`
-  const tradeNo = `T202403200000${id.toString().padStart(3, '0')}`
-  const hour = Math.floor(Math.random() * 24)
-  const minute = Math.floor(Math.random() * 60)
-  const orderTime = `2024-03-20 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`
-  const quantity = Math.floor(Math.random() * 3) + 1
-  const total = 6999.00 * quantity
-  
-  // 随机生成买家名字
-  const buyers = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十']
-  const customerName = buyers[Math.floor(Math.random() * buyers.length)]
-  
-  // 修改订单状态，增加已发货状态
-  const statuses = ['待付款', '已支付', '待发货', '部分发货', '已发货', '已完成']
-  const status = statuses[Math.floor(Math.random() * statuses.length)]
-  
-  // 根据状态设置支付方式
-  const paymentMethod = status === '待付款' ? '未支付' : ['支付宝', '微信支付'][Math.floor(Math.random() * 2)]
+const orders = ref([])
 
-  return {
-    id,
-    orderNumber,
-    tradeNo,
-    orderTime,
-    customerName,
-    total,
-    status,
-    paymentMethod,
-    products: [
-      {
-        id: 1,
-        name: 'HUAWEI Mate 60 Pro',
-        price: 6999.00,
-        quantity,
-        image: 'https://via.placeholder.com/100',
-        status: status === '部分发货' ? (Math.random() > 0.5 ? '已发货' : '待发货') : 
-                status === '已完成' ? '已发货' : '待发货'
-      },
-      {
-        id: 2,
-        name: 'HUAWEI Mate 60 Pro',
-        price: 6999.00,
-        quantity,
-        image: 'https://via.placeholder.com/100',
-        status: status === '部分发货' ? (Math.random() > 0.5 ? '已发货' : '待发货') : 
-                status === '已完成' ? '已发货' : '待发货'
-      }
-    ]
-  }
-}))
-
-// 分页相关的响应式变量
-const goToPage = ref('')
-
-// 修改订单过滤逻辑
-const currentPageOrders = computed(() => {
-  let filtered = orders.value
-
-  // 根据搜索条件过滤
-  if (orderSearchForm.value.status) {
-    filtered = filtered.filter(order => order.status === orderSearchForm.value.status)
-  }
-  if (orderSearchForm.value.orderNo) {
-    filtered = filtered.filter(order => order.orderNumber.includes(orderSearchForm.value.orderNo))
-  }
-  if (orderSearchForm.value.buyer) {
-    filtered = filtered.filter(order => order.customerName.includes(orderSearchForm.value.buyer))
-  }
-  if (orderSearchForm.value.paymentMethod) {
-    filtered = filtered.filter(order => order.paymentMethod === orderSearchForm.value.paymentMethod)
-  }
-  
-  // 计算分页
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filtered.slice(start, end)
+// 搜索表单
+const searchForm = ref({
+  shop_id: '',
+  order_status: ''
 })
 
-// 修改总订单数计算逻辑
-const totalOrders = computed(() => {
-  let filtered = orders.value
-  
-  // 根据搜索条件过滤
-  if (orderSearchForm.value.status) {
-    filtered = filtered.filter(order => order.status === orderSearchForm.value.status)
-  }
-  if (orderSearchForm.value.orderNo) {
-    filtered = filtered.filter(order => order.orderNumber.includes(orderSearchForm.value.orderNo))
-  }
-  if (orderSearchForm.value.buyer) {
-    filtered = filtered.filter(order => order.customerName.includes(orderSearchForm.value.buyer))
-  }
-  if (orderSearchForm.value.paymentMethod) {
-    filtered = filtered.filter(order => order.paymentMethod === orderSearchForm.value.paymentMethod)
-  }
-  
-  return filtered.length
-})
+// 添加订单列表的分页相关变量
+const orderCurrentPage = ref(1)
+const orderPageSize = ref(10)
+const totalOrders = ref(0)
 
-// 订单搜索表单
-const orderSearchForm = ref({
-  status: '',
-  orderNo: '',
-  buyer: '',
-  paymentMethod: ''
-})
+// 修改获取订单列表的方法
+const fetchOrders = async () => {
+  if (!storeStore.storeInfo?.id) {
+    ElMessage.warning('店铺信息不存在')
+    return
+  }
 
-// 处理订单搜索
-const handleOrderSearch = () => {
-  currentPage.value = 1 // 重置页码
+  loading.value = true
+  try {
+    const res = await getSellerOrderList({
+      shop_id: Number(storeStore.storeInfo.id),
+      order_status: searchForm.value.order_status || '',
+      page_size: orderPageSize.value,
+      page_no: orderCurrentPage.value
+    })
+    
+    if (res.code === 1) {
+      orders.value = res.data.order_list
+      totalOrders.value = res.data.total
+    } else {
+      throw new Error(res.msg || '获取订单列表失败')
+    }
+  } catch (error) {
+    console.error('获取订单列表失败:', error)
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 添加订单列表分页处理方法
+const handleOrderSizeChange = (val) => {
+  orderPageSize.value = val
   fetchOrders()
 }
 
-// 重置订单搜索
-const resetOrderSearch = () => {
-  orderSearchForm.value = {
-    status: '',
-    orderNo: '',
-    buyer: '',
-    paymentMethod: ''
-  }
-  handleOrderSearch()
+const handleOrderCurrentChange = (val) => {
+  orderCurrentPage.value = val
+  fetchOrders()
 }
 
-// 跳转到指定页
-const handleGoToPage = () => {
-  const page = parseInt(goToPage.value)
-  if (page && page > 0 && page <= Math.ceil(totalOrders.value / pageSize.value)) {
-    currentPage.value = page
-  }
-  goToPage.value = ''
+// 重置搜索
+const resetSearch = () => {
+  searchForm.value.order_status = ''
+  fetchOrders()
 }
 
-// 订单状态标签颜色
-const getStatusType = (status) => {
-  switch (status) {
-    case '待付款':
-      return 'warning'
-    case '已支付':
-      return 'info'
-    case '待发货':
-      return 'primary'
-    case '部分发货':
-      return 'warning'
-    case '已发货':
-      return 'success'
-    case '已完成':
-      return 'success'
-    default:
-      return 'info'
+// 获取订单状态类型
+const getOrderStatusType = (status) => {
+  const statusMap = {
+    'paying': 'warning',        // 待付款 - 黄色警告
+    'paid': 'primary',         // 已付款 - 蓝色主色
+    'part_delivered': 'info',  // 部分发货 - 灰色信息
+    'delivered': 'success',    // 已发货 - 绿色成功
+    'completed': 'success',    // 已完成 - 绿色成功
+    'canceled': 'info'         // 已取消 - 灰色信息
   }
+  return statusMap[status] || 'info'
 }
 
-// 处理订单操作
-const handleOrderAction = (order, action) => {
-  switch (action) {
-    case 'ship':
-      ElMessageBox.confirm(
-        `确定要发货订单 ${order.orderNumber} 吗？`,
-        '提示',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(() => {
-        ElMessage.success('发货成功')
-        // 如果是部分发货状态，检查是否所有商品都已发货
-        if (order.status === '部分发货') {
-          const allShipped = order.products.every(product => product.status === '已发货')
-          order.status = allShipped ? '已发货' : '部分发货'
-        } else {
-          order.status = '已发货'
-        }
-        // 更新商品发货状态
-        order.products.forEach(product => {
-          if (product.status === '待发货') {
-            product.status = '已发货'
-          }
-        })
-      })
-      break
-    case 'detail':
-      router.push({
-        path: `/seller/order/${order.orderNumber}`,
-        query: { 
-          from: 'seller-dashboard'  // 添加来源标记
-        }
-      })
-      break
+// 获取订单状态文本
+const getOrderStatusText = (status) => {
+  const statusMap = {
+    'paying': '待付款',
+    'paid': '已付款',
+    'part_delivered': '部分发货',
+    'delivered': '已发货',
+    'completed': '已完成',
+    'canceled': '已取消'
   }
+  return statusMap[status] || status
+}
+
+// 查看订单详情
+const viewOrderDetail = (order) => {
+  router.push(`/seller/order/${order.order_no}`)
+}
+
+// 发货处理
+const handleShip = (order) => {
+  ElMessageBox.confirm(
+    `确定要发货订单 ${order.order_no} 吗？`,
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    // TODO: 调用发货接口
+    ElMessage.success('发货成功')
+  })
 }
 
 const goToApply = () => {
@@ -700,30 +603,58 @@ const goToProductPublish = () => {
 
 .product-info {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 16px;
+  padding: 8px 0;
 }
 
 .product-image {
-  width: 50px;
-  height: 50px;
-  object-fit: cover;
+  width: 80px;
+  height: 80px;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .product-detail {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
+  overflow: hidden;
 }
 
 .product-name {
   font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  line-height: 1.4;
+}
+
+.product-desc {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-price {
+  font-size: 14px;
   color: #f56c6c;
-  font-weight: bold;
+  font-weight: 500;
+}
+
+.image-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 20px;
 }
 
 .el-aside {
@@ -991,5 +922,89 @@ const goToProductPublish = () => {
   background: #fff;
   border-radius: 4px;
   padding: 20px;
+}
+
+.brand-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+}
+
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  border-radius: 8px;
+  padding: 4px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.brand-fallback {
+  font-size: 14px;
+  color: #606266;
+}
+
+/* 添加订单相关样式 */
+.order-info {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.order-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.order-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.order-specs {
+  font-size: 12px;
+  color: #909399;
+  display: flex;
+  gap: 8px;
+}
+
+.order-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.price {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.quantity {
+  color: #909399;
+  font-size: 12px;
+}
+
+.amount {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.search-form {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 4px;
 }
 </style> 

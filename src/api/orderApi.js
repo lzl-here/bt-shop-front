@@ -70,4 +70,13 @@ export const payCancelToOrder = (data) => {
     method: 'post',
     data
   })
+}
+
+// 获取卖家订单列表
+export const getSellerOrderList = (data) => {
+  return request({
+    url: '/order/get_seller_order_list',
+    method: 'post',
+    data
+  })
 } 
